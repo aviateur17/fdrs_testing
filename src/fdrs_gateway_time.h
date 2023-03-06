@@ -140,8 +140,8 @@ bool setTime(time_t previousTime) {
   localtime_r(&now, &timeinfo);
   // Check for DST/STD time and adjust accordingly
   checkDST();
-  loadFDRS(now, STATUS_T, 111);
-  loadFDRS(slewSecs, STATUS_T, 111);
+  loadFDRS(now, STATUS_T, 112);
+  loadFDRS(slewSecs, STATUS_T, 113);
   sendFDRS();
   if(validTime()) {
     lastNTPFetchSuccess = millis();

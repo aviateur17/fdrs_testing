@@ -18,11 +18,13 @@ beginFDRS();
 
 void loop() {
     loopFDRS();
-    // Send time to LoRa broadcast address every 30 seconds.
+    // Send time to LoRa broadcast address every 5 minutes.
     // LoRa controllers should receive time and report via serial
-    if(millis() - lastRunTime > (1000 * 30)) {
+    if(millis() - lastRunTime > (1000 * 60 * 5)) {
+        #ifdef USE_LORA
         DBG("Sending LoRa time.");
         timeFDRSLoRa(LoRaAddress);
+        #endif
         lastRunTime = millis();
     }
 }

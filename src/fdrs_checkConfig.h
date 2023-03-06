@@ -79,8 +79,8 @@ void printLoggingInformation() {
 #else
 	DBG("log buffer delay in ms: NOT SPECIFIED - check config!");
 #endif
-#ifdef FS_FILENAME
-	DBG("log filename          : " + FS_FILENAME);
+#ifdef LOG_FILENAME
+	DBG("log filename          : " + LOG_FILENAME);
 #else
 	DBG("log filename          : NOT SPECIFIED - check config!");
 #endif
@@ -116,6 +116,12 @@ void printActivatedProtocols() {
 
 #if defined(USE_WIFI) && defined(USE_ESPNOW)
 	DBG("WARNING: You must not use USE_ESPNOW and USE_WIFI together! USE_WIFI is only needed for MQTT!");
+#endif
+
+#ifdef USE_STATIC_IPADDRESS
+	DBG("Using Static IP Address");
+#else
+	DBG("Using DHCP");
 #endif
 }
 
@@ -155,14 +161,50 @@ void printWifiDetails() {
 	//exit(0);
 #endif //WIFI_PASS
 
-#if defined(DNS_IPADDRESS)
-	DBG("DNS IP Address used from DNS_IPADDRESS            : " + String(FDRS_DNS_IPADDRESS));
-#elif defined (GLOBAL_DNS_IPADDRESS)
-	DBG("DNS IP Address used from GLOBAL_DNS_IPADDRESS     : " + String(FDRS_DNS_IPADDRESS));
+#ifdef USE_STATIC_IPADDRESS
+#if defined(HOST_IPADDRESS)
+	DBG("Host IP Address used from HOST_IPADDRESS            : " + String(FDRS_HOST_IPADDRESS));
+#elif defined (GLOBAL_HOST_IPADDRESS)
+	DBG("Host IP Address used from GLOBAL_HOST_IPADDRESS     : " + String(FDRS_HOST_IPADDRESS));
 #else 
-	DBG("NO DNS IP Address defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
+	DBG("NO Host IP Address defined! Please define in fdrs_globals.h (recommended) or in fdrs_gateway_config.h");
 	//exit(0);
-#endif //DNS_IPADDRESS
+#endif // HOST_IPADDRESS
+
+#if defined(GW_IPADDRESS)
+	DBG("Gateway IP Address used from GW_IPADDRESS            : " + String(FDRS_GW_IPADDRESS));
+#elif defined (GLOBAL_GW_IPADDRESS)
+	DBG("Gateway IP Address used from GLOBAL_GW_IPADDRESS     : " + String(FDRS_GW_IPADDRESS));
+#else 
+	DBG("NO Gateway IP Address defined! Please define in fdrs_globals.h (recommended) or in fdrs_gateway_config.h");
+	//exit(0);
+#endif // GW_IPADDRESS
+
+#if defined(SUBNET_ADDRESS)
+	DBG("Subnet Address used from SUBNET_ADDRESS            : " + String(FDRS_SUBNET_ADDRESS));
+#elif defined (GLOBAL_SUBNET_ADDRESS)
+	DBG("Subnet Address used from GLOBAL_SUBNET_ADDRESS     : " + String(FDRS_SUBNET_ADDRESS));
+#else 
+	DBG("NO Subnet Address defined! Please define in fdrs_globals.h (recommended) or in fdrs_gateway_config.h");
+	//exit(0);
+#endif // SUBNET_ADDRESS
+
+#if defined(DNS2_IPADDRESS)
+	DBG("DNS2 IP Address used from DNS2_IPADDRESS            : " + String(FDRS_DNS2_IPADDRESS));
+#elif defined (GLOBAL_DNS2_IPADDRESS)
+	DBG("DNS2 IP Address used from GLOBAL_DNS2_IPADDRESS     : " + String(FDRS_DNS2_IPADDRESS));
+#endif // DNS2_IPADDRESS
+#endif // USE_STATIC_IPADDRESS
+
+#if defined(DNS1_IPADDRESS)
+	DBG("DNS1 IP Address used from DNS1_IPADDRESS            : " + String(FDRS_DNS1_IPADDRESS));
+#elif defined (GLOBAL_DNS1_IPADDRESS)
+	DBG("DNS1 IP Address used from GLOBAL_DNS1_IPADDRESS     : " + String(FDRS_DNS1_IPADDRESS));
+#else 
+	DBG("NO DNS1 IP Address defined! Please define in fdrs_globals.h (recommended) or in fdrs_gateway_config.h");
+	//exit(0);
+#endif // DNS1_IPADDRESS
+
 
 	printSmallSectionHeader("MQTT BROKER CONFIG:");
 
@@ -226,27 +268,6 @@ void printWifiDetails() {
 	DBG("NO MQTT topic defined! Please define TOPIC_COMMAND in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
 	//exit(0);
 #endif //TOPIC_COMMAND
-
-	printSmallSectionHeader("NTP TIME CONFIG:");
-
-#if defined(TIME_SERVER)
-	DBG("NTP Time Server address used from TIME_SERVER        		: " + String(FDRS_TIME_SERVER));
-#elif defined (GLOBAL_TIME_SERVER)
-	DBG("NTP Time Server used from GLOBAL_TIME_SERVER  				: " + String(FDRS_TIME_SERVER));
-#else 
-	DBG("NO NTP Time Server address defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
-	//exit(0);
-#endif //TIME_SERVER
-
-#if defined(LOCAL_OFFSET)
-	DBG("Local time offset from UTC used from LOCAL_OFFSET         	: " + String(FDRS_LOCAL_OFFSET));
-#elif defined (GLOBAL_LOCAL_OFFSET)
-	DBG("Local time offset from UTC used from GLOBAL_LOCAL_OFFSET  	: " + String(FDRS_LOCAL_OFFSET));
-#else 
-	DBG("NO Local time offset from UTC defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
-	//exit(0);
-#endif //LOCAL_OFFSET
-
 
 	DBG(separatorLine);
 	DBG(separatorLine);

@@ -3,7 +3,7 @@
 //  GATEWAY CONFIGURATION
 
 //Addresses
-#define UNIT_MAC           0xef  // The address of this gateway
+#define UNIT_MAC           0xee  // The address of this gateway
 
 #define ESPNOW_NEIGHBOR_1  0x01  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x04  // Address of ESP-NOW neighbor #2
@@ -12,7 +12,7 @@
 
 // Interfaces
 // #define USE_ESPNOW  
-#define USE_LORA
+// #define USE_LORA
 #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
@@ -46,8 +46,8 @@
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
 #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
-#define OLED_SDA 21
-#define OLED_SCL 22
+#define OLED_SDA 25
+#define OLED_SCL 27
 #define OLED_RST -1
 
 // UART data interface pins (if available)
@@ -57,15 +57,23 @@
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
 // WiFi and MQTT Credentials  -- These will override the global settings
-#define WIFI_SSID   "dg"  
-#define WIFI_PASS   "digitalguy14041"
-#define DNS_IPADDRESS "192.168.118.253"     // Valid DNS IP address.  If not known, try "8.8.8.8"
+#define WIFI_SSID   AP_SSID
+#define WIFI_PASS   AP_PASS
 
-#define MQTT_ADDR   "192.168.118.130"
-//#define MQTT_PORT   1883 // Default MQTT port is 1883
+// Use Static IP Address for WiFi connections
+#define USE_STATIC_IPADDRESS     
+#define HOST_IPADDRESS      HOSTIPADDRESS
+#define GW_IPADDRESS        GATEWAY
+#define SUBNET_ADDRESS      SUBNET
+#define DNS1_IPADDRESS      DNS1    // Required for NTP even if not using static IP defined below
+#define DNS2_IPADDRESS      DNS2    // Optional. Only DNS1 is required to be able to use NTP
+
+
+#define MQTT_ADDR   MQTT_SERVER
+// #define MQTT_PORT   1883 // Default MQTT port is 1883
 #define MQTT_AUTH   //Enable MQTT authentication 
-#define MQTT_USER   "iot123"
-#define MQTT_PASS   "iot123!"
+// #define MQTT_USER   "iot123"
+// #define MQTT_PASS   "iot123!"
 
 // NTP Time settings
 #define TIME_SERVER       "0.us.pool.ntp.org"       // NTP time server to use. If FQDN at least one DNS server is required to resolve name

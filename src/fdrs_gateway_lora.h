@@ -84,6 +84,11 @@ RADIOLIB_MODULE radio = new Module(LORA_SS, LORA_DIO, LORA_RST, -1, LORA_SPI);
 RADIOLIB_MODULE radio = new Module(LORA_SS, LORA_DIO, LORA_RST, -1);
 #endif // CUSTOM_SPI
 
+#ifndef USE_ESPNOW   // mac_prefix used for both ESP-NOW and LoRa - avoid redefinition warnings
+  const uint8_t mac_prefix[] = {MAC_PREFIX};
+  const uint8_t selfAddress[] = {MAC_PREFIX, UNIT_MAC};
+#endif
+
 bool pingFlag = false;
 bool transmitFlag = false;            // flag to indicate transmission or reception state
 volatile bool enableInterrupt = true; // disable interrupt when it's not needed
