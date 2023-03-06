@@ -3,6 +3,8 @@
 //  GATEWAY Main Functions
 //  Developed by Timm Bogner (timmbogner@gmail.com)
 
+#include "hostdefs.h"
+#include "credentials.h"
 #include "fdrs_datatypes.h"
 #include "fdrs_globals.h"
 #define FDRS_GATEWAY
