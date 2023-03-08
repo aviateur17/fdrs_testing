@@ -152,7 +152,9 @@ void mqtt_publish(const char *payload)
     if (!client.publish(TOPIC_DATA, payload))
     {
         DBG(" Error on sending MQTT");
+#if defined(USE_SD_LOG) || defined(USE_FS_LOG)    
         sendLog();
+#endif
     }
     else
     {
