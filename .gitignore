@@ -5,3 +5,4 @@ hostdefs.h
 platformio.ini
 README.md
 main.cpp
+fdrs_gateway_config.h
