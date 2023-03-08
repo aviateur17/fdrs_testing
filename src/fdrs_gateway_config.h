@@ -3,7 +3,7 @@
 //  GATEWAY CONFIGURATION
 
 //Addresses
-#define UNIT_MAC           0xee  // The address of this gateway
+#define UNIT_MAC           0xef  // The address of this gateway
 
 #define ESPNOW_NEIGHBOR_1  0x01  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x04  // Address of ESP-NOW neighbor #2
@@ -12,7 +12,7 @@
 
 // Interfaces
 // #define USE_ESPNOW  
-// #define USE_LORA
+#define USE_LORA
 #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
@@ -46,8 +46,8 @@
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
 #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
-#define OLED_SDA 25
-#define OLED_SCL 27
+#define OLED_SDA 21
+#define OLED_SCL 22
 #define OLED_RST -1
 
 // UART data interface pins (if available)
