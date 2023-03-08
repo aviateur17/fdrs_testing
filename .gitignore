@@ -2,3 +2,6 @@
 .vscode
 credentials.h
 hostdefs.h
+platformio.ini
+README.md
+main.cpp
