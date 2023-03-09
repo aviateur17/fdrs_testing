@@ -189,6 +189,9 @@ void loopFDRS()
   handleMQTT();
   handleOTA();
 #endif
+#ifdef USE_OLED
+  drawPageOLED(true);
+#endif
   if (newData != event_clear)
   {
     switch (newData)
