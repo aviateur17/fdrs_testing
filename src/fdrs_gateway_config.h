@@ -5,15 +5,15 @@
 //Addresses
 #define UNIT_MAC           0xef  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0x01  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_1  0xee  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x04  // Address of ESP-NOW neighbor #2
 #define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
 // Interfaces
-// #define USE_ESPNOW  
+#define USE_ESPNOW  
 // #define USE_LORA
-#define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
+// #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
 // Actions
