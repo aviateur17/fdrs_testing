@@ -81,7 +81,7 @@
 #define LOCAL_OFFSET      (-6)                     // Local time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     15      // Time in minutes between fetching time from NTP server
 #define TIME_PRINTTIME    5      // Time in minutes between printing local time
-
+#define TIME_SEND_INTERVAL_MS (1000*60)
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging

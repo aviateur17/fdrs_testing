@@ -140,9 +140,10 @@ bool setTime(time_t previousTime) {
   localtime_r(&now, &timeinfo);
   // Check for DST/STD time and adjust accordingly
   checkDST();
-  loadFDRS(now, STATUS_T, 112);
-  loadFDRS(slewSecs, STATUS_T, 113);
-  sendFDRS();
+  // Uncomment below to send time and slew rate to the MQTT server
+  // loadFDRS(now, STATUS_T, 111);
+  // loadFDRS(slewSecs, STATUS_T, 111);
+  // sendFDRS();
   if(validTime()) {
     lastNTPFetchSuccess = millis();
     printTime();
@@ -153,16 +154,35 @@ bool setTime(time_t previousTime) {
   }
 }
 
+// Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
+void sendTime() {
+
+#ifdef USE_LORA
+  sendTimeLoRa();
+#endif
+
+#ifdef USE_ESPNOW
+  sendTimeESPNow();
+#endif
+
+}
+
 void updateTime() {
   static time_t lastUpdate = 0;
+  static time_t lastTimeSend = 0;
+
   if(millis() - lastUpdate > 500) {
-      time(&now);
-      localtime_r(&now, &timeinfo);
-      tv.tv_sec = now;
-      tv.tv_usec = 0;
-      validTime();
-      checkDST();
-      lastUpdate = millis();
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    tv.tv_sec = now;
+    tv.tv_usec = 0;
+    validTime();
+    checkDST();
+    lastUpdate = millis();
+  }
+  if(validTimeFlag && (millis() - lastTimeSend) > TIME_SEND_INTERVAL_MS) {
+    sendTime();
+    lastTimeSend = millis();
   }
 }
 

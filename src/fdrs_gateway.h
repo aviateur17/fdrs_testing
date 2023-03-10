@@ -3,8 +3,6 @@
 //  GATEWAY Main Functions
 //  Developed by Timm Bogner (timmbogner@gmail.com)
 
-#include "hostdefs.h"
-#include "credentials.h"
 #include "fdrs_datatypes.h"
 #include "fdrs_globals.h"
 #define FDRS_GATEWAY
@@ -47,42 +45,22 @@ uint8_t newCmd = cmd_clear;
 DataReading fdrsData[256]; // buffer for loadFDRS()
 uint8_t data_count = 0;
 
-// Function Prototypes needed due to #ifdefs being moved outside of function definitions in header files 
-void broadcastLoRa();
-void sendLoRaNbr(uint8_t);
-void timeFDRSLoRa(uint8_t *);
-static uint16_t crc16_update(uint16_t, uint8_t);
-esp_err_t sendESPNowNbr(uint8_t);
-esp_err_t sendESPNowPeers();
-void sendMQTT();
-void sendLog();
-void resendLog();
-void releaseLogBuffer();
-
-#ifdef USE_OLED
-  #include "fdrs_oled.h"
-#endif
+#include "fdrs_oled.h"
 #include "fdrs_debug.h"
+#include "fdrs_gateway_espnow.h"
+#include "fdrs_gateway_lora.h"
+#include "fdrs_gateway_wifi.h"
+#include "fdrs_gateway_filesystem.h"
+#include "fdrs_gateway_mqtt.h"
 #include "fdrs_gateway_serial.h"
 #include "fdrs_gateway_scheduler.h"
-#ifdef USE_ESPNOW
-  #include "fdrs_gateway_espnow.h"
-#endif
-#ifdef USE_LORA
-  #include "fdrs_gateway_lora.h"
-#endif
 #ifdef USE_WIFI
-  #include "fdrs_gateway_wifi.h"
-  #include "fdrs_gateway_mqtt.h"
   #include "fdrs_gateway_time.h"
-  #include "fdrs_gateway_ota.h"
-#endif
-#if defined(USE_FS_LOG) || defined(USE_SD_LOG)
-  #include "fdrs_gateway_filesystem.h"
 #endif
 #ifdef DEBUG_CONFIG
-  #include "fdrs_checkConfig.h"
+#include "fdrs_checkConfig.h"
 #endif
+
 
 void sendFDRS()
 {
@@ -102,6 +80,10 @@ void sendFDRS()
 
 void loadFDRS(float d, uint8_t t, uint16_t id)
 {
+  // guard against buffer overflow
+  if(data_count > 253) {
+    sendFDRS();
+  }
   DBG("Id: " + String(id) + " - Type: " + String(t) + " - Data loaded: " + String(d));
   DataReading dr;
   dr.id = id;
@@ -134,7 +116,6 @@ void beginFDRS()
   DBG("Connected.");
   begin_mqtt();
   begin_ntp();
-  begin_OTA();
 #endif
 #ifdef USE_ESPNOW
   begin_espnow();
@@ -189,10 +170,6 @@ void loopFDRS()
 #ifdef USE_WIFI
   updateTime();
   handleMQTT();
-  handleOTA();
-#endif
-#ifdef USE_OLED
-  drawPageOLED(true);
 #endif
   if (newData != event_clear)
   {
@@ -230,16 +207,3 @@ void loopFDRS()
   }
 }
 
-// "Skeleton Functions related to FDRS Actions"
-#ifndef USE_LORA
-  void broadcastLoRa() {}
-  void sendLoRaNbr(uint8_t address) {}
-  void timeFDRSLoRa(uint8_t *address) {}
-#endif
-#ifndef USE_ESPNOW
-  void sendESPNowNbr(uint8_t interface) {}
-  void sendESPNowPeers() {}
-#endif
-#ifndef USE_WIFI
-  void sendMQTT() {}
-#endif
