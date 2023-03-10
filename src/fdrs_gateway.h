@@ -99,6 +99,7 @@ void beginFDRS()
   Serial.begin(115200);
 #elif defined(ESP32)
   Serial.begin(115200);
+  Serial.printf("FDRS_Gateway_Test 3607c8 UART <-> ESP-NOW\n");
   UART_IF.begin(115200, SERIAL_8N1, RXD2, TXD2);
 #endif
 #ifdef USE_OLED
