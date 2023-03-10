@@ -22,7 +22,7 @@
 #define LORAG_ACT      sendMQTT();
 #define SERIAL_ACT     
 #define MQTT_ACT          
-#define INTERNAL_ACT   sendESPNowNbr(1); sendMQTT();
+#define INTERNAL_ACT   sendESPNowNbr(1);
 #define ESPNOW1_ACT    sendESPNowNbr(2); sendESPNowPeers();
 #define ESPNOW2_ACT    sendESPNowNbr(1);                
 #define LORA1_ACT      
