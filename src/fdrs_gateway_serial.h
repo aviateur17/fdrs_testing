@@ -6,8 +6,6 @@
 #define UART_IF Serial
 #endif
 
-extern time_t now;
-
 void getSerial() {
   String incomingString;
   int timeIndex = 0;

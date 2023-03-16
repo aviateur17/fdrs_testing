@@ -17,6 +17,9 @@ bool validTimeFlag = false;           // Indicate whether we have reliable time
 time_t lastNTPFetchSuccess = 0;      // Last time that a successful NTP fetch was made
 bool isDST;                           // Keeps track of Daylight Savings Time vs Standard Time
 long slewSecs = 0;                  // When time is set this is the number of seconds the time changes
+time_t lastUpdate = 0;
+time_t lastTimeSend = 0;
+
 
 void sendTimeLoRa();
 esp_err_t sendTimeESPNow();
@@ -116,8 +119,6 @@ void sendTime() {
 }
 
 void updateTime() {
-  static time_t lastUpdate = 0;
-  static time_t lastTimeSend = 0;
 
   if(millis() - lastUpdate > 500) {
     time(&now);
@@ -128,7 +129,7 @@ void updateTime() {
     checkDST();
     lastUpdate = millis();
   }
-  if(validTimeFlag && (millis() - lastTimeSend) > TIME_SEND_INTERVAL_MS) {
+  if(validTimeFlag && (millis() - lastTimeSend) > (1000 * 60 * TIME_SEND_INTERVAL)) {
     sendTime();
     lastTimeSend = millis();
   }
