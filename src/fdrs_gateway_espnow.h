@@ -195,8 +195,6 @@ void add_espnow_peer()
   }
 }
 
-#endif // USE_ESPNOW
-
 // Lower level function meant to be called by other functions 
 // Sends SystemPacket via ESP-NOW
 esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) {
@@ -297,7 +295,7 @@ esp_err_t sendESPNow(uint8_t *dest, DataReading *data) {
     }
   }
 #endif // ESP32
-    for(int i = 0; i < ln; i) {
+    for(int i = 0; i < ln; ) {
       if(ln > espnow_size) {
         sendResult = esp_now_send(dest, (uint8_t *)&data[i], espnow_size * sizeof(DataReading));
         if(sendResult == ESP_OK) {

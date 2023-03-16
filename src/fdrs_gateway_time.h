@@ -14,7 +14,7 @@ struct tm timeinfo;                   // Structure containing time elements
 struct timeval tv;
 char strftime_buf[64];
 bool validTimeFlag = false;           // Indicate whether we have reliable time 
-extern time_t lastNTPFetchSuccess;      // Last time that a successful NTP fetch was made
+time_t lastNTPFetchSuccess = 0;      // Last time that a successful NTP fetch was made
 bool isDST;                           // Keeps track of Daylight Savings Time vs Standard Time
 long slewSecs = 0;                  // When time is set this is the number of seconds the time changes
 

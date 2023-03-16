@@ -31,8 +31,9 @@
 // LoRa Configuration
 #define RADIOLIB_MODULE SX1276
 #define LORA_SS    26
-#define LORA_RST   29
+#define LORA_RST   RADIOLIB_NC
 #define LORA_DIO   5
+#define LORA_BUSY  RADIOLIB_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
 // //#define USE_SX126X
 

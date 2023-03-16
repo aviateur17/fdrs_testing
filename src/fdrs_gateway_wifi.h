@@ -67,7 +67,7 @@ const int NTP_PACKET_SIZE = 48;       // NTP time stamp is in the first 48 bytes
 byte packetBuffer[NTP_PACKET_SIZE];   //buffer to hold incoming and outgoing packets
 time_t localOffset = (FDRS_LOCAL_OFFSET * 60 * 60);  // UTC -> Local time in Seconds in Standard Time
 uint NTPFetchFail = 0;                // consecutive NTP fetch failures
-time_t lastNTPFetchSuccess = 0;      // Last time that a successful NTP fetch was made
+extern time_t lastNTPFetchSuccess;      // Last time that a successful NTP fetch was made
 extern time_t now;
 extern struct timeval tv;
 
