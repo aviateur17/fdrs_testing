@@ -10,12 +10,16 @@ extern time_t now;
 
 void getSerial() {
   String incomingString;
+  int timeIndex = 0;
+  bool serialTimeFlag = false;
+
   if (UART_IF.available()){
    incomingString =  UART_IF.readStringUntil('\n');
   }
   else if (Serial.available()){
    incomingString =  Serial.readStringUntil('\n');
   }
+  // DBG(incomingString);
   DynamicJsonDocument doc(24576);
   DeserializationError error = deserializeJson(doc, incomingString);
   if (error) {    // Test if parsing succeeds.
@@ -29,18 +33,22 @@ void getSerial() {
       theData[i].id = doc[i]["id"];
       theData[i].t = doc[i]["type"];
       theData[i].d = doc[i]["data"];
+      if(theData[i].t == TIME_T) {
+        timeIndex = i;
+        serialTimeFlag = true;
+      }
     }
     ln = s;
-    if(ln == 1 && theData[0].t == TIME_T) {
+    if(serialTimeFlag) {
       DBG("Incoming time via Serial.");
-      
-      sendTimeESPNow();
-      sendTimeLoRa();
+      time_t previousTime = now;
+      now = theData[timeIndex].d;
+      setTime(previousTime); 
+      timeIndex = 0;
+      serialTimeFlag = false;
     }
-    else {
-      newData = event_serial;
-      DBG("Incoming Serial.");
-    }
+    newData = event_serial;
+    DBG("Incoming Serial.");
   }
 }
 
@@ -61,18 +69,17 @@ void sendSerial() {
 #endif
 
 }
-
-void sendTimeSerial() {
-  theData[ln].id = UNIT_MAC;
-  theData[ln].t = TIME_T;
-  theData[ln].d = now;
-  ln++;
-  sendSerial();
-}
-
 void handleSerial(){
   while (UART_IF.available() || Serial.available())
   {
     getSerial();
   }
+}
+
+void sendTimeSerial() {
+  theData[0].id = 0;
+  theData[0].t = TIME_T;
+  theData[0].d = now;
+  ln = 1;
+  sendSerial();
 }
