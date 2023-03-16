@@ -34,7 +34,11 @@
 #ifndef INTERNAL_ACT
 #define INTERNAL_ACT
 #endif
-
+#ifdef USE_ETHERNET
+#ifndef USE_WIFI
+#define USE_WIFI
+#endif
+#endif // USE_ETHERNET
 
 SystemPacket theCmd;
 DataReading theData[256];
@@ -45,22 +49,58 @@ uint8_t newCmd = cmd_clear;
 DataReading fdrsData[256]; // buffer for loadFDRS()
 uint8_t data_count = 0;
 
-#include "fdrs_oled.h"
+// Function Prototypes needed due to #ifdefs being moved outside of function definitions in header files 
+void broadcastLoRa();
+void sendLoRaNbr(uint8_t);
+void timeFDRSLoRa(uint8_t *);
+//static uint16_t crc16_update(uint16_t, uint8_t);
+esp_err_t sendESPNowNbr(uint8_t);
+esp_err_t sendESPNowPeers();
+esp_err_t sendESPNow(uint8_t);
+void sendTimeSerial();
+
+void sendMQTT();
+void sendLog();
+void resendLog();
+void releaseLogBuffer();
+void printFDRS(DataReading*, int);
+
+#include "hostdefs.h"
+#include "credentials.h"
+#ifdef USE_OLED
+  #include "fdrs_oled.h"
+#endif
 #include "fdrs_debug.h"
-#include "fdrs_gateway_espnow.h"
-#include "fdrs_gateway_lora.h"
-#include "fdrs_gateway_wifi.h"
-#include "fdrs_gateway_filesystem.h"
-#include "fdrs_gateway_mqtt.h"
+#include "fdrs_gateway_time.h"
 #include "fdrs_gateway_serial.h"
 #include "fdrs_gateway_scheduler.h"
+#ifdef USE_ESPNOW
+  #include "fdrs_gateway_espnow.h"
+#endif
+#ifdef USE_LORA
+  #include "fdrs_gateway_lora.h"
+#endif
 #ifdef USE_WIFI
-  #include "fdrs_gateway_time.h"
+  #include "fdrs_gateway_wifi.h"
+  #include "fdrs_gateway_mqtt.h"
+#endif
+#if defined(USE_FS_LOG) || defined(USE_SD_LOG)
+  #include "fdrs_gateway_filesystem.h"
 #endif
 #ifdef DEBUG_CONFIG
-#include "fdrs_checkConfig.h"
+  #include "fdrs_checkConfig.h"
 #endif
 
+
+// Print type DataReading for debugging purposes
+void printFDRS(DataReading * dr, int len) {
+  DBG("----- printFDRS: " + String(len) + " records -----");
+  for(int i = 0; i < len; i++) {
+    DBG("Index: " + String(i) + "| id: " + String(dr[i].id) + "| type: " + String(dr[i].t) + "| data: " + String(dr[i].d));
+  }
+  DBG("----- End printFDRS -----");
+
+}
 
 void sendFDRS()
 {
@@ -208,3 +248,20 @@ void loopFDRS()
   }
 }
 
+// "Skeleton Functions related to FDRS Actions"
+#ifndef USE_LORA
+  void broadcastLoRa() {}
+  void sendLoRaNbr(uint8_t address) {}
+  void timeFDRSLoRa(uint8_t *address) {}  // fdrs_gateway_lora.h
+  void sendTimeLoRa() {}                  // fdrs_gateway_time.h
+#endif
+#ifndef USE_ESPNOW
+  esp_err_t sendESPNowNbr(uint8_t interface) { return ESP_OK; }
+  esp_err_t sendESPNowPeers() { return ESP_OK; }
+  esp_err_t sendESPNow(uint8_t *dest, DataReading *data) { return ESP_OK; }
+  esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) { return ESP_OK; }
+  esp_err_t sendTimeESPNow() { return ESP_OK; }                  // fdrs_gateway_time.h
+#endif
+#ifndef USE_WIFI
+  void sendMQTT() {}
+#endif

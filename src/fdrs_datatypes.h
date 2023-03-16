@@ -84,5 +84,6 @@ enum
 #define POWER2_T        31 // Power #2
 #define ENERGY_T        32 // Energy
 #define ENERGY2_T       33 // Energy #2
+#define TIME_T          34 // Time 
 
 #endif //FDRS_DATA_TYPES
