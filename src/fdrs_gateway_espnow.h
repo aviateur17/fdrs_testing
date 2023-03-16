@@ -302,12 +302,10 @@ esp_err_t sendESPNow(uint8_t *dest, DataReading *data) {
     }
   }
 #endif // ESP32
-    int i = 0;
-    while(ln > 0) {
+    for(int i = 0; i < ln; i) {
       if(ln > espnow_size) {
         sendResult = esp_now_send(dest, (uint8_t *)&data[i], espnow_size * sizeof(DataReading));
         if(sendResult == ESP_OK) {
-          ln -= espnow_size;
           i += espnow_size;
         }
         else {
@@ -319,7 +317,7 @@ esp_err_t sendESPNow(uint8_t *dest, DataReading *data) {
       else {
         sendResult = esp_now_send(dest, (uint8_t *)&data[i], ln * sizeof(DataReading));
         if(sendResult == ESP_OK) {
-          ln = 0;
+          // Done
         }
         else {
           // Send Failed!

@@ -156,15 +156,9 @@ bool setTime(time_t previousTime) {
 
 // Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
 void sendTime() {
-
-#ifdef USE_LORA
+  sendTimeSerial();
   sendTimeLoRa();
-#endif
-
-#ifdef USE_ESPNOW
   sendTimeESPNow();
-#endif
-
 }
 
 void updateTime() {

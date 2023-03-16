@@ -45,6 +45,8 @@ uint8_t newCmd = cmd_clear;
 DataReading fdrsData[256]; // buffer for loadFDRS()
 uint8_t data_count = 0;
 
+#include "hostdefs.h"
+#include "credentials.h"
 #include "fdrs_oled.h"
 #include "fdrs_debug.h"
 #include "fdrs_gateway_espnow.h"
@@ -99,6 +101,7 @@ void beginFDRS()
   Serial.begin(115200);
 #elif defined(ESP32)
   Serial.begin(115200);
+  Serial.printf("FDRS_Gateway_Test UART <-> WiFi gateway\n");
   UART_IF.begin(115200, SERIAL_8N1, RXD2, TXD2);
 #endif
 #ifdef USE_OLED
@@ -207,3 +210,16 @@ void loopFDRS()
   }
 }
 
+// "Skeleton Functions related to FDRS Actions"
+#ifndef USE_LORA
+  void broadcastLoRa() {}
+  void sendLoRaNbr(uint8_t address) {}
+  void timeFDRSLoRa(uint8_t *address) {}
+  void sendTimeLoRa() {}
+#endif
+#ifndef USE_ESPNOW
+  void sendESPNowNbr(uint8_t interface) {}
+  void sendESPNowPeers() {}
+  void sendESPNow(uint8_t address) {}
+  void sendTimeESPNow() {}
+#endif

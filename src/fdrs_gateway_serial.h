@@ -6,6 +6,7 @@
 #define UART_IF Serial
 #endif
 
+extern time_t now;
 
 void getSerial() {
   String incomingString;
@@ -30,9 +31,16 @@ void getSerial() {
       theData[i].d = doc[i]["data"];
     }
     ln = s;
-    newData = event_serial;
-    DBG("Incoming Serial.");
-
+    if(ln == 1 && theData[0].t == TIME_T) {
+      DBG("Incoming time via Serial.");
+      
+      sendTimeESPNow();
+      sendTimeLoRa();
+    }
+    else {
+      newData = event_serial;
+      DBG("Incoming Serial.");
+    }
   }
 }
 
@@ -53,6 +61,15 @@ void sendSerial() {
 #endif
 
 }
+
+void sendTimeSerial() {
+  theData[ln].id = UNIT_MAC;
+  theData[ln].t = TIME_T;
+  theData[ln].d = now;
+  ln++;
+  sendSerial();
+}
+
 void handleSerial(){
   while (UART_IF.available() || Serial.available())
   {
