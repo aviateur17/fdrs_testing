@@ -94,7 +94,7 @@ bool setTime(time_t previousTime) {
   // Uncomment below to send time and slew rate to the MQTT server
   // loadFDRS(now, TIME_T, 111);
   // loadFDRS(slewSecs, TIME_T, 111);
-  // sendFDRS();
+  // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
     lastNTPFetchSuccess = millis();
     printTime();
