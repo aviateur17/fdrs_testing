@@ -20,7 +20,6 @@ long slewSecs = 0;                  // When time is set this is the number of se
 time_t lastUpdate = 0;
 time_t lastTimeSend = 0;
 
-
 void sendTimeLoRa();
 esp_err_t sendTimeESPNow();
 
