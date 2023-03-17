@@ -18,11 +18,9 @@ beginFDRS();
 void loop() {
     loopFDRS();
     if(millis() - lastRunTime > (1000*60*1)) {
-        for(int i=0; i<2; i++) {
-            loadFDRS(random(0,100),0,110);
-            loadFDRS(random(0,100),0,111);
-            loadFDRS(random(0,100),0,112);
-        }
+        loadFDRS(random(0,100),0,82);
+        loadFDRS(random(0,100),0,82);
+        loadFDRS(random(0,100),0,82);
         lastRunTime = millis();
         sendFDRS();
     }

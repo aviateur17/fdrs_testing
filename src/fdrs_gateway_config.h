@@ -3,27 +3,27 @@
 //  GATEWAY CONFIGURATION
 
 //Addresses
-#define UNIT_MAC           0xee  // The address of this gateway
+#define UNIT_MAC           0xce  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0x03  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_1  0xee  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x04  // Address of ESP-NOW neighbor #2
 #define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
 // Interfaces
 #define USE_ESPNOW  
-// #define USE_LORA
+#define USE_LORA
 // #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
 // Actions
 // Options: sendESPNowNbr(1 or 2); sendESPNowPeers(); sendLoRaNbr(1 or 2); broadcastLoRa(); sendSerial(); sendMQTT();
-#define ESPNOWG_ACT    sendSerial();
-#define LORAG_ACT      sendSerial();
-#define SERIAL_ACT     sendESPNowPeers();
+#define ESPNOWG_ACT    sendESPNowNbr(1);
+#define LORAG_ACT      sendESPNowNbr(1);
+#define SERIAL_ACT     
 #define MQTT_ACT          
-#define INTERNAL_ACT   sendSerial();
-#define ESPNOW1_ACT    sendESPNowNbr(2); sendESPNowPeers();
+#define INTERNAL_ACT   sendESPNowNbr(1);
+#define ESPNOW1_ACT    sendESPNowNbr(2); sendESPNowPeers(); broadcastLoRa();
 #define ESPNOW2_ACT    sendESPNowNbr(1);                
 #define LORA1_ACT      
 #define LORA2_ACT 
@@ -45,7 +45,7 @@
 #define FDRS_DEBUG     // Enable USB-Serial debugging
 
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
-// #define USE_OLED    
+#define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
 #define OLED_SDA 21

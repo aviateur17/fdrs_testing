@@ -196,15 +196,7 @@ void fetchNtpTime() {
       now = secsSince1900 - seventyYears;
       // Adjust for local time
       now += localOffset;
-      checkDST();
-      // time(&now);
-      tv.tv_sec = now;
-      settimeofday(&tv,NULL);
-      localtime_r(&now, &timeinfo);
-      DBG(timeinfo.tm_isdst);
-      if(validTime()) {
-        lastNTPFetchSuccess = millis();
-      }
+      setTime(now);
     }
     else {
       NTPFetchFail++;

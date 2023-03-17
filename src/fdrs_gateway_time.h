@@ -6,8 +6,9 @@
 #else
 #define FDRS_TIME_PRINTTIME GLOBAL_TIME_PRINTTIME
 #endif // TIME_PRINTTIME
-#define DSTSTART  (timeinfo.tm_mon == 10 && timeinfo.tm_wday == 0 && timeinfo.tm_mday < 8 && timeinfo.tm_hour == 2)
-#define DSTEND    (timeinfo.tm_mon == 2 && timeinfo.tm_wday == 0 && timeinfo.tm_mday > 7 && timeinfo.tm_mday < 15 && timeinfo.tm_hour == 2)
+#define DSTSTART    (timeinfo.tm_mon == 2 && timeinfo.tm_wday == 0 && timeinfo.tm_mday > 7 && timeinfo.tm_mday < 15 && timeinfo.tm_hour == 2)
+#define DSTEND  (timeinfo.tm_mon == 10 && timeinfo.tm_wday == 0 && timeinfo.tm_mday < 8 && timeinfo.tm_hour == 2)
+
 
 time_t now;                           // Current time - number of seconds since Jan 1 1970 (epoch)
 struct tm timeinfo;                   // Structure containing time elements
@@ -62,16 +63,18 @@ void printTime() {
 }
 
 void checkDST() {
-  // DST -> STD - add one hour (3600 seconds)
-  if(validTimeFlag && isDST && (DSTEND || timeinfo.tm_isdst == 0)) {
+  // DST -> STD - subtract one hour (3600 seconds)
+  if(validTimeFlag && isDST && (DSTEND || timeinfo.tm_isdst == 1)) {
     isDST = false;
-    now += 3600;
+    now -= 3600;
+    localtime_r(&now, &timeinfo); // write to timeinfo struct
     DBG("Time change from DST -> STD");
   }
-  // STD -> DST - subtract one hour (3600 seconds)
-  else if(validTimeFlag && !isDST && (DSTSTART || timeinfo.tm_isdst == 1)) {
+  // STD -> DST - add one hour (3600 seconds)
+  else if(validTimeFlag && !isDST && (DSTSTART || timeinfo.tm_isdst == 0)) {
     isDST = true;
-    now -= 3600;
+    now += 3600;
+    localtime_r(&now, &timeinfo); // write to timeinfo struct
     DBG("Time change from STD -> DST");
   }
   return;
@@ -86,15 +89,16 @@ bool setTime(time_t previousTime) {
   }
 
   // time(&now);
-  tv.tv_sec = now;
-  settimeofday(&tv,NULL);
-  localtime_r(&now, &timeinfo);
+  localtime_r(&now, &timeinfo); // write to timeinfo struct
+  mktime(&timeinfo); // set tm_isdst flag
   // Check for DST/STD time and adjust accordingly
   checkDST();
+  tv.tv_sec = now;
+  settimeofday(&tv,NULL); // set the RTC time
   // Uncomment below to send time and slew rate to the MQTT server
   // loadFDRS(now, TIME_T, 111);
   // loadFDRS(slewSecs, TIME_T, 111);
-  // sendFDRS();
+  // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
     lastNTPFetchSuccess = millis();
     printTime();

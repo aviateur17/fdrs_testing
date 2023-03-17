@@ -6,8 +6,6 @@
 #define UART_IF Serial
 #endif
 
-extern time_t now;
-
 void getSerial() {
   String incomingString;
 
@@ -25,6 +23,8 @@ void getSerial() {
     //    DBG(incomingString);
     return;
   } else {
+    // serializeJson(doc, Serial);
+    // Serial.println();
     int s = doc.size();
     JsonObject obj = doc[0].as<JsonObject>();
     if(obj.containsKey("type")) { // DataReading
@@ -90,7 +90,7 @@ void sendTimeSerial() {
   UART_IF.println();
 
 #ifndef ESP8266
-  serializeJson(SysPacket, Serial);
-  Serial.println();
+  // serializeJson(SysPacket, Serial);
+  // Serial.println();
 #endif
 }
