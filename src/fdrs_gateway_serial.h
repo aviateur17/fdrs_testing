@@ -6,6 +6,8 @@
 #define UART_IF Serial
 #endif
 
+extern time_t now;
+
 void getSerial() {
   String incomingString;
 
@@ -24,7 +26,7 @@ void getSerial() {
     return;
   } else {
     int s = doc.size();
-    JsonObject obj = doc.to<JsonObject>();
+    JsonObject obj = doc[0].as<JsonObject>();
     if(obj.containsKey("type")) { // DataReading
       //UART_IF.println(s);
       for (int i = 0; i < s; i++) {

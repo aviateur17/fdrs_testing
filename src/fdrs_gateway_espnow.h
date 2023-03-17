@@ -255,6 +255,8 @@ esp_err_t sendTimeESPNow() {
   result2 = sendESPNow(ESPNOW2, &sys_packet);
   result3 = sendESPNow(nullptr, &sys_packet);
 
+  DBG("Time Send Result: " + String(esp_err_to_name(result1)) + " | " + String(esp_err_to_name(result2)) + " | " + String(esp_err_to_name(result3)));
+
   if(result1 != ESP_OK || result2 != ESP_OK || result3 != ESP_OK){
     return ESP_FAIL;
   }
@@ -364,4 +366,11 @@ esp_err_t sendESPNowTempPeer(uint8_t *dest) {
   result = sendESPNow(dest, theData);
   esp_now_del_peer(dest);
   return result;
+}
+
+void recvTimeEspNow() {
+  time_t previousTime = now;
+  now = theCmd.param;
+  setTime(previousTime); 
+  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5],HEX));
 }

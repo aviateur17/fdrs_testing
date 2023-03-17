@@ -108,6 +108,7 @@ bool setTime(time_t previousTime) {
 // Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
 void sendTime() {
   if(validTime()) { // Only send time if it is valid
+  DBG("Sending out time");
   // Only send via Serial interface if WiFi is enabled to prevent loops
 #ifdef USE_WIFI // do not remove this line
     sendTimeSerial();
