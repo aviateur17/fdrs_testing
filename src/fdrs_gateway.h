@@ -139,6 +139,7 @@ void beginFDRS()
   Serial.begin(115200);
 #elif defined(ESP32)
   Serial.begin(115200);
+  Serial.printf("FDRS_Gateway_Test 540b40 WiFi <-> UART\n");
   UART_IF.begin(115200, SERIAL_8N1, RXD2, TXD2);
 #endif
 #ifdef USE_OLED
@@ -191,6 +192,14 @@ void handleCommands()
 #endif // USE_ESPNOW
 
     break;
+
+  case cmd_time:
+#ifdef USE_ESPNOW
+    recvTimeEspNow();
+#endif // USE_ESPNOW
+
+    break;
+  
   }
   theCmd.cmd = cmd_clear;
   theCmd.param = 0;
@@ -200,6 +209,7 @@ void loopFDRS()
 {
   handle_schedule();
   handleCommands();
+  updateTime();
 #if defined(USE_SD_LOG) || defined(USE_FS_LOG)
   handleLogger();
 #endif
@@ -208,7 +218,6 @@ void loopFDRS()
   handleLoRa();
 #endif
 #ifdef USE_WIFI
-  updateTime();
   handleMQTT();
 #endif
   if (newData != event_clear)

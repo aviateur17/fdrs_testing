@@ -18,12 +18,13 @@ void getSerial() {
   // DBG(incomingString);
   DynamicJsonDocument doc(24576);
   DeserializationError error = deserializeJson(doc, incomingString);
-  serializeJson(doc, Serial);
   if (error) {    // Test if parsing succeeds.
     //    DBG("json parse err");
     //    DBG(incomingString);
     return;
   } else {
+    // serializeJson(doc, Serial);
+    // Serial.println();
     int s = doc.size();
     JsonObject obj = doc[0].as<JsonObject>();
     if(obj.containsKey("type")) { // DataReading
@@ -35,7 +36,6 @@ void getSerial() {
       }
       ln = s;
       newData = event_serial;
-      printFDRS(theData,ln);
       DBG("Incoming Serial: DR");
     }
     else if(obj.containsKey("cmd")) { // SystemPacket
@@ -90,7 +90,7 @@ void sendTimeSerial() {
   UART_IF.println();
 
 #ifndef ESP8266
-  serializeJson(SysPacket, Serial);
-  Serial.println();
+  // serializeJson(SysPacket, Serial);
+  // Serial.println();
 #endif
 }

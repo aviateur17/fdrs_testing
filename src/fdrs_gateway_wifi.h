@@ -67,7 +67,7 @@ const int NTP_PACKET_SIZE = 48;       // NTP time stamp is in the first 48 bytes
 byte packetBuffer[NTP_PACKET_SIZE];   //buffer to hold incoming and outgoing packets
 time_t localOffset = (FDRS_LOCAL_OFFSET * 60 * 60);  // UTC -> Local time in Seconds in Standard Time
 uint NTPFetchFail = 0;                // consecutive NTP fetch failures
-
+extern time_t now;
 
 #ifdef USE_ETHERNET
 static bool eth_connected = false;
