@@ -181,8 +181,7 @@ void sendMQTT()
         doc[i]["data"] = theData[i].d;
         doc[i]["time"] = time(nullptr);
     }
-    char *mqtt_payload = (char *)malloc(measureJson(doc) + 1);
+    char mqtt_payload[measureJson(doc) + 1];
     serializeJson(doc, mqtt_payload, sizeof(mqtt_payload));
     mqtt_publish(mqtt_payload);
-    free(mqtt_payload);
 }

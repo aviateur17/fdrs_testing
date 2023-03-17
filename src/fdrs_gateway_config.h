@@ -5,7 +5,7 @@
 //Addresses
 #define UNIT_MAC           0xee  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0x03  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_1  0xce  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x04  // Address of ESP-NOW neighbor #2
 #define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
@@ -20,10 +20,10 @@
 // Options: sendESPNowNbr(1 or 2); sendESPNowPeers(); sendLoRaNbr(1 or 2); broadcastLoRa(); sendSerial(); sendMQTT();
 #define ESPNOWG_ACT    sendSerial();
 #define LORAG_ACT      sendSerial();
-#define SERIAL_ACT     sendESPNowPeers();
+#define SERIAL_ACT     sendESPNowNbr(1); sendESPNowPeers();
 #define MQTT_ACT          
 #define INTERNAL_ACT   sendSerial();
-#define ESPNOW1_ACT    sendESPNowNbr(2); sendESPNowPeers();
+#define ESPNOW1_ACT    sendSerial();
 #define ESPNOW2_ACT    sendESPNowNbr(1);                
 #define LORA1_ACT      
 #define LORA2_ACT 
