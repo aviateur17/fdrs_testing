@@ -11,10 +11,9 @@
 
 
 void setup() {
-beginFDRS();
+    beginFDRS();
 }
 
 void loop() {
     loopFDRS();
-
 }
