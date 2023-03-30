@@ -181,7 +181,7 @@ void sendMQTT()
         doc[i]["data"] = theData[i].d;
         doc[i]["time"] = time(nullptr);
     }
-    char mqtt_payload[measureJson(doc) + 1];
-    serializeJson(doc, mqtt_payload, sizeof(mqtt_payload));
-    mqtt_publish(mqtt_payload);
+    String mqtt_payload;
+    serializeJson(doc, mqtt_payload);
+    mqtt_publish((char *)mqtt_payload.c_str());
 }
