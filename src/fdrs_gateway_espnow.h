@@ -156,7 +156,11 @@ int getFDRSPeer(uint8_t *mac)
 
 void add_espnow_peer()
 {
+<<<<<<< HEAD
   DBG("Device requesting peer registration: 0x" + String(incMAC[5],HEX));
+=======
+  DBG("Device requesting peer registration: 0x" + String(incMAC[5], HEX));
+>>>>>>> host540b40_devel
   int peer_num = getFDRSPeer(&incMAC[0]);
   if (peer_num == -1) // if the device isn't registered
   {
@@ -187,7 +191,7 @@ void add_espnow_peer()
   }
   else
   {
-    DBG("Refreshing existing peer registration");
+    DBG("Refreshing existing peer registration for 0x" + String(incMAC[5], HEX));
     peer_list[peer_num].last_seen = millis();
 
     SystemPacket sys_packet = {.cmd = cmd_add, .param = PEER_TIMEOUT};
@@ -334,14 +338,22 @@ esp_err_t sendESPNowNbr(uint8_t interface) {
   {
   case 1:
   { // These brackets are required!
+<<<<<<< HEAD
     DBG("Sending to ESP-NOW Neighbor #1 0x" + String(ESPNOW_NEIGHBOR_1,HEX));
+=======
+    DBG("Sending to ESP-NOW Neighbor #1: 0x" + String(ESPNOW_NEIGHBOR_1, HEX));
+>>>>>>> host540b40_devel
     result = sendESPNow(ESPNOW1, theData);
     esp_now_del_peer(ESPNOW1);
     break;
   }
   case 2:
   { // These brackets are required!
+<<<<<<< HEAD
     DBG("Sending to ESP-NOW Neighbor #2 0x" + String(ESPNOW_NEIGHBOR_2,HEX));
+=======
+    DBG("Sending to ESP-NOW Neighbor #2: 0x" + String(ESPNOW_NEIGHBOR_2, HEX));
+>>>>>>> host540b40_devel
     result = sendESPNow(ESPNOW2, theData);
     esp_now_del_peer(ESPNOW2);
     break;
@@ -362,7 +374,11 @@ esp_err_t sendESPNowPeers() {
 
 esp_err_t sendESPNowTempPeer(uint8_t *dest) {
   esp_err_t result;
+<<<<<<< HEAD
   DBG("Sending ESP-NOW temp peer 0x" + String(&dest, HEX));
+=======
+  DBG("Sending ESP-NOW temp peer: 0x" + String(*dest), HEX);
+>>>>>>> host540b40_devel
   result = sendESPNow(dest, theData);
   esp_now_del_peer(dest);
   return result;
@@ -370,5 +386,5 @@ esp_err_t sendESPNowTempPeer(uint8_t *dest) {
 
 void recvTimeEspNow() {
   setTime(theCmd.param); 
-  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5],HEX));
+  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
 }
