@@ -3,10 +3,10 @@
 //  GATEWAY CONFIGURATION
 
 //Addresses
-#define UNIT_MAC           0xce  // The address of this gateway
+#define UNIT_MAC           0x22  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0xee  // Address of ESP-NOW neighbor #1
-#define ESPNOW_NEIGHBOR_2  0x04  // Address of ESP-NOW neighbor #2
+#define ESPNOW_NEIGHBOR_1  0x21  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_2  0x00  // Address of ESP-NOW neighbor #2
 #define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
@@ -43,6 +43,7 @@
 #define LORA_SPI_MOSI 23
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
+// #define DEBUG_CONFIG
 
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
 #define USE_OLED    
@@ -78,12 +79,14 @@
 // #define MQTT_PASS   "iot123!"
 
 // NTP Time settings
+#define USDST
+// #define EUDST
 #define TIME_SERVER       "0.us.pool.ntp.org"       // NTP time server to use. If FQDN at least one DNS server is required to resolve name
 #define STD_OFFSET      (-6)                // Local standard time offset in hours from UTC - if unsure, check https://time.is
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices
+#define TIME_SEND_INTERVAL 5    // Time, in minutes, between sending out time to remote devices
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging

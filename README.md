@@ -6,9 +6,9 @@ Jeff Testing Branch for FDRS Gateway with PlatformIO in VSCode
 Host 39ea44
 ESP-NOW <--> LoRa Gateway
 
-#define UNIT_MAC           0xce
+#define UNIT_MAC           0x22
 
-ESP-NOW Neighbor 1 0xee
+ESP-NOW Neighbor 1 0x21
 
 #define ESPNOWG_ACT    sendESPNowNbr(1);
 #define LORAG_ACT      sendESPNowNbr(1);

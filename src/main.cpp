@@ -12,16 +12,16 @@
 time_t lastRunTime = 0;
 
 void setup() {
-beginFDRS();
+    beginFDRS();
 }
 
 void loop() {
     loopFDRS();
-    if(millis() - lastRunTime > (1000*60*1)) {
-        loadFDRS(random(0,100),0,82);
-        loadFDRS(random(0,100),0,82);
-        loadFDRS(random(0,100),0,82);
-        lastRunTime = millis();
-        sendFDRS();
-    }
+    // if(millis() - lastRunTime > (1000*60*1)) {
+    //     loadFDRS(random(0,100),0,82);
+    //     loadFDRS(random(0,100),0,82);
+    //     loadFDRS(random(0,100),0,82);
+    //     lastRunTime = millis();
+    //     sendFDRS();
+    // }
 }

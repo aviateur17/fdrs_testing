@@ -1,4 +1,3 @@
-
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
@@ -41,6 +40,8 @@
 #define FDRS_MQTT_AUTH
 #endif // MQTT_AUTH
 
+#define MQTT_MAX_BUFF_SIZE 1024
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -63,7 +64,7 @@ void reconnect_mqtt(short int attempts, bool silent)
     for (short int i = 1; i <= attempts; i++)
     {
         // Attempt to connect
-        if (client.connect("FDRS_GATEWAY54", mqtt_user, mqtt_pass))
+        if (client.connect("FDRS_GATEWAY_540b40", mqtt_user, mqtt_pass))
         {
             // Subscribe
             client.subscribe(TOPIC_COMMAND);
@@ -140,6 +141,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
 void begin_mqtt()
 {
     client.setServer(mqtt_server, mqtt_port);
+    client.setBufferSize(MQTT_MAX_BUFF_SIZE);
     if (!client.connected())
     {
         reconnect_mqtt(5);
@@ -152,7 +154,7 @@ void mqtt_publish(const char *payload)
     if (!client.publish(TOPIC_DATA, payload))
     {
         DBG(" Error on sending MQTT");
-#if defined(USE_SD_LOG) || defined(USE_FS_LOG)    
+#if defined(USE_SD_LOG) || defined(USE_FS_LOG)
         sendLog();
 #endif
     }
@@ -173,7 +175,6 @@ void sendMQTT()
 {
     DBG("Sending MQTT.");
     DynamicJsonDocument doc(24576);
-    // String outgoingString;
     for (int i = 0; i < ln; i++)
     {
         doc[i]["id"] = theData[i].id;
