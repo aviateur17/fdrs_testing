@@ -3,10 +3,10 @@
 //  GATEWAY CONFIGURATION
 
 //Addresses
-#define UNIT_MAC           0xde  // The address of this gateway
+#define UNIT_MAC           0x20  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0x03  // Address of ESP-NOW neighbor #1
-#define ESPNOW_NEIGHBOR_2  0x04  // Address of ESP-NOW neighbor #2
+#define ESPNOW_NEIGHBOR_1  0x00  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_2  0x00  // Address of ESP-NOW neighbor #2
 #define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
@@ -86,7 +86,7 @@
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices
+#define TIME_SEND_INTERVAL 5    // Time, in minutes, between sending out time to remote devices
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging

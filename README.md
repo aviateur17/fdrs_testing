@@ -6,7 +6,7 @@ Jeff Testing Branch for FDRS Gateway with PlatformIO in VSCode
 Host 540b40
 WiFi -> MQTT & UART <-->
 
-#define UNIT_MAC           0xde
+#define UNIT_MAC           0x20
 
 
 #define SERIAL_ACT     sendMQTT();
