@@ -7,7 +7,7 @@
 
 #define ESPNOW_NEIGHBOR_1  0x21  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x00  // Address of ESP-NOW neighbor #2
-#define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
+#define LORA_NEIGHBOR_1    0x23  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
 // Interfaces
@@ -23,9 +23,9 @@
 #define SERIAL_ACT     
 #define MQTT_ACT          
 #define INTERNAL_ACT   sendESPNowNbr(1);
-#define ESPNOW1_ACT    sendESPNowNbr(2); sendESPNowPeers(); broadcastLoRa();
-#define ESPNOW2_ACT    sendESPNowNbr(1);                
-#define LORA1_ACT      
+#define ESPNOW1_ACT    sendESPNowPeers(); sendLoRaNbr(1);
+#define ESPNOW2_ACT                    
+#define LORA1_ACT      sendESPNowNbr(1);
 #define LORA2_ACT 
 
 // LoRa Configuration
@@ -45,12 +45,15 @@
 #define FDRS_DEBUG     // Enable USB-Serial debugging
 // #define DEBUG_CONFIG
 
+// I2C - OLED or rtc
+#define USE_I2C
+#define I2C_SDA 21
+#define I2C_SCL 22
+
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
 #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
-#define OLED_SDA 21
-#define OLED_SCL 22
 #define OLED_RST -1
 
 // UART data interface pins (if available)
@@ -84,9 +87,9 @@
 #define TIME_SERVER       "0.us.pool.ntp.org"       // NTP time server to use. If FQDN at least one DNS server is required to resolve name
 #define STD_OFFSET      (-6)                // Local standard time offset in hours from UTC - if unsure, check https://time.is
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
-#define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server
+#define TIME_FETCHNTP     0      // Time, in minutes, between fetching time from NTP server
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 5    // Time, in minutes, between sending out time to remote devices
+#define TIME_SEND_INTERVAL 0    // Time, in minutes, between sending out time to remote devices
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging
