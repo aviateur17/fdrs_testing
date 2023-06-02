@@ -45,12 +45,17 @@
 #define FDRS_DEBUG     // Enable USB-Serial debugging
 // #define DEBUG_CONFIG
 
+// I2C - OLED or RTC
+#define USE_I2C
+#define I2C_SDA 21
+#define I2C_SCL 22
+
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
 // #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
-#define OLED_SDA 21
-#define OLED_SCL 22
+// #define OLED_SDA 21
+// #define OLED_SCL 22
 #define OLED_RST -1
 
 // UART data interface pins (if available)
@@ -87,6 +92,12 @@
 #define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
 #define TIME_SEND_INTERVAL 5    // Time, in minutes, between sending out time to remote devices
+
+// RTC - I2C
+#define USE_RTC_DS3231
+#define RTC_ADDR 0x57
+// #define USE_RTC_DS1307
+// #define RTC_ADDR 0x68
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging
