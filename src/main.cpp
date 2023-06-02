@@ -6,25 +6,27 @@
 //
 
 #include <Arduino.h>
+#include "credentials.h"
+#include "hostdefs.h"
 #include "fdrs_gateway_config.h"
 #include <fdrs_gateway.h>                                                                                                                                                                                                               
 
-time_t lastRunTime = 0;
-uint8_t LoRaAddress[] = { 0xFF, 0xFF };
+// time_t lastRunTime = 0;
+// uint8_t LoRaAddress[] = { 0xFF, 0xFF };
 
 void setup() {
-beginFDRS();
+    beginFDRS();
 }
 
 void loop() {
     loopFDRS();
-    // Send time to LoRa broadcast address every 5 minutes.
-    // LoRa controllers should receive time and report via serial
-    if(millis() - lastRunTime > (1000 * 60 * 5)) {
-        #ifdef USE_LORA
-        DBG("Sending LoRa time.");
-        timeFDRSLoRa(LoRaAddress);
-        #endif
-        lastRunTime = millis();
-    }
+    // // Send time to LoRa broadcast address every 5 minutes.
+    // // LoRa controllers should receive time and report via serial
+    // if(millis() - lastRunTime > (1000 * 60 * 5)) {
+    //     #ifdef USE_LORA
+    //     DBG("Sending LoRa time.");
+    //     timeFDRSLoRa(LoRaAddress);
+    //     #endif
+    //     lastRunTime = millis();
+    // }
 }

@@ -1,4 +1,3 @@
-#ifdef USE_LORA
 #include <RadioLib.h>
 
 #define GLOBAL_ACK_TIMEOUT 400 // LoRa ACK timeout in ms. (Minimum = 200)
@@ -73,20 +72,25 @@
 #define FDRS_LORA_INTERVAL GLOBAL_LORA_INTERVAL
 #endif // LORA_INTERVAL
 
-const uint8_t lora_size = 256 / sizeof(DataReading);
+#ifndef LORA_BUSY
+#define LORA_BUSY RADIOLIB_NC
+#endif
+
+const uint8_t lora_size = 250 / sizeof(DataReading);
 
 #ifdef CUSTOM_SPI
-#ifdef ESP32
-SPIClass LORA_SPI(HSPI);
-RADIOLIB_MODULE radio = new Module(LORA_SS, LORA_DIO, LORA_RST, -1, LORA_SPI);
-#endif // ESP32
+#ifdef ARDUINO_ARCH_RP2040
+RADIOLIB_MODULE radio = new Module(LORA_SS, LORA_DIO, LORA_RST, LORA_BUSY, SPI1);
+#endif  // RP2040
+RADIOLIB_MODULE radio = new Module(LORA_SS, LORA_DIO, LORA_RST, LORA_BUSY, SPI);
 #else
-RADIOLIB_MODULE radio = new Module(LORA_SS, LORA_DIO, LORA_RST, -1);
-#endif // CUSTOM_SPI
+RADIOLIB_MODULE radio = new Module(LORA_SS, LORA_DIO, LORA_RST, LORA_BUSY);
+#endif  // CUSTOM_SPI
+
 
 #ifndef USE_ESPNOW   // mac_prefix used for both ESP-NOW and LoRa - avoid redefinition warnings
-  const uint8_t mac_prefix[] = {MAC_PREFIX};
-  const uint8_t selfAddress[] = {MAC_PREFIX, UNIT_MAC};
+const uint8_t mac_prefix[] = {MAC_PREFIX};
+const uint8_t selfAddress[] = {MAC_PREFIX, UNIT_MAC};
 #endif
 
 bool pingFlag = false;
@@ -96,11 +100,14 @@ volatile bool operationDone = false;  // flag to indicate that a packet was sent
 
 uint16_t LoRa1 = ((mac_prefix[4] << 8) | LORA_NEIGHBOR_1); // Use 2 bytes for LoRa addressing instead of previous 3 bytes
 uint16_t LoRa2 = ((mac_prefix[4] << 8) | LORA_NEIGHBOR_2);
+uint16_t timeMasterLoRa = 0x0000;
 uint16_t loraGwAddress = ((selfAddress[4] << 8) | selfAddress[5]); // last 2 bytes of gateway address
 uint16_t loraBroadcast = 0xFFFF;
 unsigned long receivedLoRaMsg = 0; // Number of total LoRa packets destined for us and of valid size
 unsigned long ackOkLoRaMsg = 0;    // Number of total LoRa packets with valid CRC
 extern time_t now;
+time_t lastTimeMasterPing = 0;
+time_t netTimeOffset = UINT32_MAX;  // One direction of LoRa Ping time in units of seconds (1/2 full ping time)
 
 typedef struct DataBuffer
 {
@@ -122,14 +129,27 @@ enum
 
 uint8_t tx_buffer_position = 0;
 uint32_t tx_start_time;
-bool tx_time_set = false;
-
-#endif // USE_LORA
 
 // Function prototypes
 crcResult transmitLoRa(uint16_t *, DataReading *, uint8_t);
 crcResult transmitLoRa(uint16_t *, SystemPacket *, uint8_t);
 static uint16_t crc16_update(uint16_t, uint8_t);
+
+#if defined(ESP8266) || defined(ESP32)
+ICACHE_RAM_ATTR
+#endif
+void setFlag(void)
+{
+  // check if the interrupt is enabled
+  if (!enableInterrupt)
+  {
+    return;
+  }
+  // we sent or received  packet, set the flag
+  operationDone = true;
+}
+
+// crc16_update used by both LoRa and filesystem
 
 // CRC16 from https://github.com/4-20ma/ModbusMaster/blob/3a05ff87677a9bdd8e027d6906dc05ca15ca8ade/src/util/crc16.h#L71
 
@@ -157,21 +177,6 @@ static uint16_t crc16_update(uint16_t crc, uint8_t a)
   }
 
   return crc;
-}
-#ifdef USE_LORA
-
-#if defined(ESP8266) || defined(ESP32)
-ICACHE_RAM_ATTR
-#endif
-void setFlag(void)
-{
-  // check if the interrupt is enabled
-  if (!enableInterrupt)
-  {
-    return;
-  }
-  // we sent or received  packet, set the flag
-  operationDone = true;
 }
 
 void printLoraPacket(uint8_t *p, int size)
@@ -203,10 +208,10 @@ crcResult transmitLoRa(uint16_t *destMac, DataReading *packet, uint8_t len)
     // printf("CRC: %02X : %d\n",calcCRC, i);
     calcCRC = crc16_update(calcCRC, pkt[i]);
   }
-  if (*destMac == 0xFFFF)
-  {
-    calcCRC = crc16_update(calcCRC, 0xA1);
-  }
+  //if (*destMac == 0xFFFF)
+  //{
+  calcCRC = crc16_update(calcCRC, 0xA1);
+  //}
   pkt[(len * sizeof(DataReading) + 4)] = (calcCRC >> 8); // Append calculated CRC to the last 2 bytes of the packet
   pkt[(len * sizeof(DataReading) + 5)] = (calcCRC & 0x00FF);
   DBG("Transmitting LoRa message of size " + String(sizeof(pkt)) + " bytes with CRC 0x" + String(calcCRC, HEX) + " to LoRa MAC 0x" + String(*destMac, HEX));
@@ -260,35 +265,47 @@ crcResult transmitLoRa(uint16_t *destMac, SystemPacket *packet, uint8_t len)
   }
   return crcReturned;
 }
-#endif // USE_LORA
 
 // These need to be removed 
 #ifdef USE_LORA
-void timeFDRSLoRa(uint8_t *address) {
-  SystemPacket spTimeLoRa = {.cmd = cmd_time, .param = now};
+void sendTimeLoRa(uint8_t *address) {
+
   uint16_t LoRaAddress;
 
   // DBG("Sending time " + String(now) + " to LoRa address 0x" + String(*address, HEX) + String(*(address + 1), HEX));
   LoRaAddress = ((int16_t) *address << 8) + *(address + 1);
-  DBG("Sending time " + String(now) + " to LoRa address 0x" + String(LoRaAddress, HEX));
+  DBG("Sending time to LoRa address 0x" + String(LoRaAddress, HEX));
 
+  SystemPacket spTimeLoRa = {.cmd = cmd_time, .param = now};
   transmitLoRa(&LoRaAddress, &spTimeLoRa, 1);
+  // add LoRa neighbor 1
+  // transmitLoRa(&LoRaAddress, &spTimeLoRa, 1);
+  // add LoRa neighbor 2
+  // transmitLoRa(&LoRaAddress, &spTimeLoRa, 1);
 
 }
 // These need to be removed 
 #endif
 
-#ifdef USE_LORA
 void begin_lora()
 {
 #ifdef CUSTOM_SPI
 #ifdef ESP32
-  LORA_SPI.begin(LORA_SPI_SCK, LORA_SPI_MISO, LORA_SPI_MOSI);
-#endif // ESP32
-#else
-#endif // CUSTOM_SPI
+  SPI.begin(LORA_SPI_SCK, LORA_SPI_MISO, LORA_SPI_MOSI);
+#endif  // ESP32
+#ifdef ARDUINO_ARCH_RP2040
+  SPI1.setRX(LORA_SPI_MISO);
+  SPI1.setTX(LORA_SPI_MOSI);
+  SPI1.setSCK(LORA_SPI_SCK);
+  SPI1.begin(false);
+#endif  //ARDUINO_ARCH_RP2040
+#endif  // CUSTOM_SPI
 
+#ifdef USE_SX126X
+  int state = radio.begin(FDRS_LORA_FREQUENCY, FDRS_LORA_BANDWIDTH, FDRS_LORA_SF, FDRS_LORA_CR, FDRS_LORA_SYNCWORD, FDRS_LORA_TXPWR);
+#else
   int state = radio.begin(FDRS_LORA_FREQUENCY, FDRS_LORA_BANDWIDTH, FDRS_LORA_SF, FDRS_LORA_CR, FDRS_LORA_SYNCWORD, FDRS_LORA_TXPWR, 8, 0);
+#endif
   if (state == RADIOLIB_ERR_NONE)
   {
     DBG("RadioLib initialization successful!");
@@ -302,7 +319,7 @@ void begin_lora()
 #ifdef USE_SX126X
   radio.setDio1Action(setFlag);
 #else
-  radio.setDio0Action(setFlag);
+  radio.setDio0Action(setFlag, RISING);
 #endif
 
   radio.setCRC(false);
@@ -318,11 +335,9 @@ void begin_lora()
       ;
   }
 }
-#endif // USE_LORA
 
 crcResult getLoRa()
 {
-#ifdef USE_LORA
 
   int packetSize = radio.getPacketLength();
   if ((((packetSize - 6) % sizeof(DataReading) == 0) || ((packetSize - 6) % sizeof(SystemPacket) == 0)) && packetSize > 0)
@@ -420,6 +435,12 @@ crcResult getLoRa()
               transmitLoRa(&sourceMAC, &pingReply, 1);
             }
           }
+          else if (ln == 1 && receiveData[0].cmd == cmd_time) {
+            timeMasterLoRa = sourceMAC;
+            setTime(receiveData[0].param);
+            DBG("Time rcv from LoRa 0x" + String(sourceMAC, HEX));
+            adjTimeforNetDelay(netTimeOffset);
+          }
           else
           { // data we have received is not yet programmed.  How we handle is future enhancement.
             DBG("Received some LoRa SystemPacket data that is not yet handled.  To be handled in future enhancement.");
@@ -429,7 +450,7 @@ crcResult getLoRa()
           return CRC_OK;
         }
         else if (packetCRC == crc16_update(calcCRC, 0xA1))
-        {                                                  // Sender does not want ACK and CRC is valid
+        { // Sender does not want ACK and CRC is valid
           memcpy(receiveData, &packet[4], packetSize - 6); // Split off data portion of packet (N bytes)
           if (ln == 1 && receiveData[0].cmd == cmd_ack)
           {
@@ -448,6 +469,12 @@ crcResult getLoRa()
               SystemPacket pingReply = {.cmd = cmd_ping, .param = 1};
               transmitLoRa(&sourceMAC, &pingReply, 1);
             }
+          }
+          else if (ln == 1 && receiveData[0].cmd == cmd_time) {
+            timeMasterLoRa = sourceMAC;
+            setTime(receiveData[0].param);
+            DBG("Time rcv from LoRa 0x" + String(sourceMAC, HEX));
+            adjTimeforNetDelay(netTimeOffset);
           }
           else
           { // data we have received is not yet programmed.  How we handle is future enhancement.
@@ -482,14 +509,12 @@ crcResult getLoRa()
       return CRC_NULL;
     }
   }
-#endif // USE_LORA
   return CRC_NULL;
 }
 
 // Sends packet to any node that is paired to this gateway
 void broadcastLoRa()
 {
-#ifdef USE_LORA
   DBG("Sending to LoRa broadcast buffer");
 
   for (int i = 0; i < ln; i++)
@@ -497,124 +522,104 @@ void broadcastLoRa()
     LORABBuffer.buffer[LORABBuffer.len + i] = theData[i];
   }
   LORABBuffer.len += ln;
-
-#endif // USE_LORA
 }
 
 // Sends packet to neighbor gateways
 void sendLoRaNbr(uint8_t interface)
 {
-#ifdef USE_LORA
   DBG("Sending to LoRa neighbor buffer");
   switch (interface)
   {
-  case 1:
-  {
-    for (int i = 0; i < ln; i++)
-    {
-      LORA1Buffer.buffer[LORA1Buffer.len + i] = theData[i];
-    }
-    LORA1Buffer.len += ln;
-    break;
+    case 1:
+      {
+        for (int i = 0; i < ln; i++)
+        {
+          LORA1Buffer.buffer[LORA1Buffer.len + i] = theData[i];
+        }
+        LORA1Buffer.len += ln;
+        break;
+      }
+    case 2:
+      {
+        for (int i = 0; i < ln; i++)
+        {
+          LORA2Buffer.buffer[LORA2Buffer.len + i] = theData[i];
+        }
+        LORA2Buffer.len += ln;
+        break;
+      }
   }
-  case 2:
-  {
-    for (int i = 0; i < ln; i++)
-    {
-      LORA2Buffer.buffer[LORA2Buffer.len + i] = theData[i];
-    }
-    LORA2Buffer.len += ln;
-    break;
-  }
-  }
-#endif // USE_LORA
 }
-#ifdef USE_LORA
 
 void asyncReleaseLoRa(bool first_run)
 {
+  delay(3);
   if (first_run)
   {
-    TxStatus = TxLoRa1;
-    tx_time_set = true;
+    if (LORA1Buffer.len > 0) {
+      TxStatus = TxLoRa1;
+    } else if (LORA2Buffer.len > 0) {
+      TxStatus = TxLoRa2;
+    } else if (LORABBuffer.len > 0) {
+      TxStatus = TxLoRaB;
+    } else {
+      goto TxFin;
+    }
     tx_start_time = millis();
   }
   switch (TxStatus)
   {
-  case TxLoRa1:
-    if (LORA1Buffer.len == 0)
-    {
-      TxStatus = TxLoRa2;
-      goto TxL2;
-    }
-    else
-    {
-      if (LORA1Buffer.len - tx_buffer_position > lora_size)
-      {
+    case TxLoRa1:
+      if (LORA1Buffer.len - tx_buffer_position > lora_size) {
         transmitLoRa(&LoRa1, &LORA1Buffer.buffer[tx_buffer_position], lora_size);
         tx_buffer_position += lora_size;
-      }
-      else
-      {
+      } else {
         transmitLoRa(&LoRa1, &LORA1Buffer.buffer[tx_buffer_position], LORA1Buffer.len - tx_buffer_position);
         tx_buffer_position = 0;
-        TxStatus = TxLoRa2;
+        if (LORA2Buffer.len > 0) {
+          TxStatus = TxLoRa2;
+        } else if ((LORABBuffer.len > 0)) {
+          TxStatus = TxLoRaB;
+        } else {
+          goto TxFin;
+        }
       }
       break;
     case TxLoRa2:
-    TxL2:
-      if (LORA2Buffer.len == 0)
-      {
-        TxStatus = TxLoRaB;
-        goto TxLB;
-      }
-      else
-      {
-        if (LORA2Buffer.len - tx_buffer_position > lora_size)
-        {
-          transmitLoRa(&LoRa2, &LORA2Buffer.buffer[tx_buffer_position], lora_size);
-          tx_buffer_position += lora_size;
-        }
-        else
-        {
-          transmitLoRa(&LoRa2, &LORA2Buffer.buffer[tx_buffer_position], LORA2Buffer.len - tx_buffer_position);
-          tx_buffer_position = 0;
+      if (LORA2Buffer.len - tx_buffer_position > lora_size) {
+        transmitLoRa(&LoRa2, &LORA2Buffer.buffer[tx_buffer_position], lora_size);
+        tx_buffer_position += lora_size;
+      } else {
+        transmitLoRa(&LoRa2, &LORA2Buffer.buffer[tx_buffer_position], LORA2Buffer.len - tx_buffer_position);
+        tx_buffer_position = 0;
+        if (LORABBuffer.len > 0) {
           TxStatus = TxLoRaB;
+        } else {
+          goto TxFin;
         }
       }
       break;
+
     case TxLoRaB:
-    TxLB:
-      // DBG(LORABBuffer.len);
-      if (LORABBuffer.len == 0)
-      {
-        TxStatus = TxIdle;
-        goto TxFin;
-      }
-      else
-      {
-        if (LORABBuffer.len - tx_buffer_position > lora_size)
-        {
-          transmitLoRa(&loraBroadcast, &LORABBuffer.buffer[tx_buffer_position], lora_size);
-          tx_buffer_position += lora_size;
-        }
-        else
-        {
-          transmitLoRa(&loraBroadcast, &LORABBuffer.buffer[tx_buffer_position], LORABBuffer.len - tx_buffer_position);
-        TxFin:
+      if (LORABBuffer.len - tx_buffer_position > lora_size) {
+        transmitLoRa(&loraBroadcast, &LORABBuffer.buffer[tx_buffer_position], lora_size);
+        tx_buffer_position += lora_size;
+      } else {
+        transmitLoRa(&loraBroadcast, &LORABBuffer.buffer[tx_buffer_position], LORABBuffer.len - tx_buffer_position);
+TxFin:
+        if (LORABBuffer.len + LORA1Buffer.len + LORA2Buffer.len > 0) {
           LORABBuffer.len = 0;
           LORA1Buffer.len = 0;
           LORA2Buffer.len = 0;
-          tx_time_set = false;
-
           tx_buffer_position = 0;
           TxStatus = TxIdle;
         }
       }
       break;
-    }
   }
 }
+
+
 void asyncReleaseLoRaFirst()
 {
   asyncReleaseLoRa(true);
@@ -625,10 +630,15 @@ crcResult handleLoRa()
   crcResult crcReturned = CRC_NULL;
   if (operationDone) // the interrupt was triggered
   {
+    // DBG("Interrupt triggered");
+    // DBG("TxFlag: " + String(transmitFlag));
+    // DBG("TxStatus: " + String(TxStatus));
+
     enableInterrupt = false;
     operationDone = false;
     if (transmitFlag) // the previous operation was transmission
     {
+      radio.finishTransmit();
       if (TxStatus != TxIdle)
       {
         asyncReleaseLoRa(false);
@@ -636,11 +646,7 @@ crcResult handleLoRa()
       }
       else
       {
-        if (tx_time_set)
-        {
-          DBG("LoRa airtime: " + String(millis() - tx_start_time) + "ms");
-          tx_time_set = false;
-        }
+        DBG("LoRa airtime: " + String(millis() - tx_start_time) + "ms");
         radio.startReceive(); // return to listen mode
         enableInterrupt = true;
         transmitFlag = false;
@@ -658,4 +664,66 @@ crcResult handleLoRa()
   }
   return crcReturned;
 }
-#endif // USE_LORA
+
+void sendTimeLoRa() {
+
+  DBG("Sending time via LoRa");
+  SystemPacket spTimeLoRa = {.cmd = cmd_time, .param = now};
+  transmitLoRa(&loraBroadcast, &spTimeLoRa, 1);
+  // Do not send to LoRa peers if their address is 0x..00
+  if(((LoRa1 & 0x00FF) != 0x0000) && (LoRa1 != timeMasterLoRa)) {
+  spTimeLoRa.param = now;
+  // add LoRa neighbor 1
+  transmitLoRa(&LoRa1, &spTimeLoRa, 1);
+  }
+  if(((LoRa2 & 0x00FF) != 0x0000) && (LoRa2 != timeMasterLoRa)) {
+  spTimeLoRa.param = now;
+  // add LoRa neighbor 2
+  transmitLoRa(&LoRa2, &spTimeLoRa, 1);
+  }
+}
+
+// FDRS Sensor pings gateway and listens for a defined amount of time for a reply
+// Blocking function for timeout amount of time (up to timeout time waiting for reply)(IE no callback)
+// Returns the amount of time in ms that the ping takes or predefined value if ping fails within timeout
+uint32_t pingFDRSLoRa(uint16_t *address, uint32_t timeout)
+{
+    SystemPacket sys_packet = {.cmd = cmd_ping, .param = 0};
+
+    transmitLoRa(address, &sys_packet, 1);
+    DBG("LoRa ping sent to address: 0x" + String(*address, HEX));
+    uint32_t ping_start = millis();
+    pingFlag = false;
+    while ((millis() - ping_start) <= timeout)
+    {
+        handleLoRa();
+        #ifdef ESP8266
+            yield();
+        #endif
+        if (pingFlag)
+        {   
+            DBG("LoRa Ping Returned: " + String(millis() - ping_start) + "ms.");
+            pingFlag = false;
+            return (millis() - ping_start);
+        }
+    }
+    DBG("No LoRa ping returned within " + String(timeout) + "ms.");
+    return UINT32_MAX;
+}
+
+// Pings the LoRa time master periodically to calculate the time delay in the LoRa radio link
+// Returns success or failure of the ping result
+bool pingLoRaTimeMaster() {
+  if(millis() - lastTimeMasterPing > (60000 + random(0,2000))) {
+    time_t pingTimeMs;
+    pingTimeMs = pingFDRSLoRa(&timeMasterLoRa,4000);
+    if(pingTimeMs != UINT32_MAX) {
+      netTimeOffset = pingTimeMs/2/1000;
+      adjTimeforNetDelay(netTimeOffset);
+      lastTimeMasterPing = millis();
+      return true;  
+    }
+    lastTimeMasterPing = millis();
+  }
+  return false;
+}

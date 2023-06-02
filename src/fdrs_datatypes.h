@@ -26,7 +26,7 @@ enum crcResult {
   CRC_BAD,
 } returnCRC;
 
-enum {
+enum cmd_t {
   cmd_clear,
   cmd_ping,
   cmd_add,
@@ -47,6 +47,13 @@ enum
   event_lora2,
   event_internal
 };
+
+#ifndef ESP32
+typedef int esp_err_t;
+#define ESP_FAIL 0
+#define ESP_OK 1
+#endif
+
 #ifndef FDRS_DATA_TYPES
 #define FDRS_DATA_TYPES
 

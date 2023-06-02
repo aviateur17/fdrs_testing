@@ -1,27 +1,4 @@
-// Example code from https://docs.arduino.cc/tutorials/ethernet-shield-rev2/udp-ntp-client
-
-#include <WiFiUdp.h>
-
-// select NTP Time Server configuration
-#if defined(TIME_SERVER)
-#define FDRS_TIME_SERVER TIME_SERVER
-#else 
-#define FDRS_TIME_SERVER GLOBAL_TIME_SERVER
-#endif // TIME_SERVER
-
-// select Local Offset from UTC configuration
-#if defined(LOCAL_OFFSET)
-#define FDRS_LOCAL_OFFSET LOCAL_OFFSET
-#else
-#define FDRS_LOCAL_OFFSET GLOBAL_LOCAL_OFFSET
-#endif // LOCAL_OFFSET
-
-// select Time, in minutes, between NTP time server queries configuration
-#if defined(TIME_FETCHNTP)
-#define FDRS_TIME_FETCHNTP TIME_FETCHNTP
-#else
-#define FDRS_TIME_FETCHNTP GLOBAL_TIME_FETCHNTP
-#endif // TIME_FETCHNTP
+#include <sys/time.h>
 
 // select Time, in minutes, between time printed configuration
 #if defined(TIME_PRINTTIME)
@@ -29,54 +6,101 @@
 #else
 #define FDRS_TIME_PRINTTIME GLOBAL_TIME_PRINTTIME
 #endif // TIME_PRINTTIME
-#define DSTSTART  (timeinfo.tm_mon == 10 && timeinfo.tm_wday == 0 && timeinfo.tm_mday < 8 && timeinfo.tm_hour == 2)
-#define DSTEND    (timeinfo.tm_mon == 2 && timeinfo.tm_wday == 0 && timeinfo.tm_mday > 7 && timeinfo.tm_mday < 15 && timeinfo.tm_hour == 2)
 
-WiFiUDP FDRSNtp;
-unsigned int localPort = 8888;        // local port to listen for UDP packets
-const char timeServer[] = FDRS_TIME_SERVER; // NTP server
-const int NTP_PACKET_SIZE = 48;       // NTP time stamp is in the first 48 bytes of the message
-byte packetBuffer[NTP_PACKET_SIZE];   //buffer to hold incoming and outgoing packets
-time_t now;                           // Current time - number of seconds since Jan 1 1970 (epoch)
+// select Local Standard time Offset from UTC configuration
+#if defined(STD_OFFSET)
+#define FDRS_STD_OFFSET STD_OFFSET
+#else
+#define FDRS_STD_OFFSET GLOBAL_STD_OFFSET
+#endif // STD_OFFSET
+
+// select Local savings time Offset from UTC configuration
+#if defined(DST_OFFSET)
+#define FDRS_DST_OFFSET DST_OFFSET
+#else
+#define FDRS_DST_OFFSET GLOBAL_DST_OFFSET
+#endif // DST_OFFSET
+
+// US DST Start - 2nd Sunday in March - 02:00 local time
+// US DST End - 1st Sunday in November - 02:00 local time
+
+// EU DST Start - last Sunday in March - 01:00 UTC
+// EU DST End - last Sunday in October - 01:00 UTC
+
+time_t now;                           // Current time in UTC - number of seconds since Jan 1 1970 (epoch)
 struct tm timeinfo;                   // Structure containing time elements
 struct timeval tv;
-char strftime_buf[64];
-time_t localOffset = (FDRS_LOCAL_OFFSET * 60 * 60);  // UTC -> Local time in Seconds in Standard Time
 bool validTimeFlag = false;           // Indicate whether we have reliable time 
-uint NTPFetchFail = 0;                // consecutive NTP fetch failures
+bool validRtcFlag = false;            // Is RTC date and time valid?
 time_t lastNTPFetchSuccess = 0;      // Last time that a successful NTP fetch was made
 bool isDST;                           // Keeps track of Daylight Savings Time vs Standard Time
 long slewSecs = 0;                  // When time is set this is the number of seconds the time changes
+double stdOffset = (FDRS_STD_OFFSET * 60 * 60);  // UTC -> Local time, in Seconds, offset from UTC in Standard Time
+double dstOffset = (FDRS_DST_OFFSET * 60 * 60); // -1 hour for DST offset from standard time (in seconds)
+time_t lastUpdate = 0;
+time_t lastTimeSend = 0;
+time_t lastDstCheck = 0;
 
-// Function prototypes
-void loadFDRS(float, uint8_t, uint16_t);
-void sendFDRS();
 
-// send an NTP request to the time server at the given address
-void sendNTPpacket(const char * address) {
-  // set all bytes in the buffer to 0
-  memset(packetBuffer, 0, NTP_PACKET_SIZE);
-  // Initialize values needed to form NTP request
-  // (see URL above for details on the packets)
-  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
-  // 8 bytes of zero for Root Delay & Root Dispersion
-  packetBuffer[12]  = 49;
-  packetBuffer[13]  = 0x4E;
-  packetBuffer[14]  = 49;
-  packetBuffer[15]  = 52;
+void sendTimeLoRa();
+void printTime();
+esp_err_t sendTimeESPNow();
+bool setTime(time_t);
 
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp:
-  FDRSNtp.beginPacket(address, 123); // NTP requests are to port 123
-  FDRSNtp.write(packetBuffer, NTP_PACKET_SIZE);
-  FDRSNtp.endPacket();
+#ifdef USE_RTC_DS3231
+#include <RtcDS3231.h>
+RtcDS3231<TwoWire> rtc(Wire);
+#elif defined(USE_RTC_DS1307)
+#include <RtcDS3231.h>
+RtcDS3231<TwoWire> rtc(Wire);
+#endif
+
+#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+void begin_rtc() {
+  DBG("Starting RTC");
+  rtc.Begin();
+
+  // Is Date and time valid?
+  if(!rtc.IsDateTimeValid()) {
+    uint8_t err = rtc.LastError();
+    if(err != 0) {
+        // Common Causes:
+        //    1) first time you ran and the device wasn't running yet
+        //    2) the battery on the device is low or even missing
+
+        Serial.println("RTC error: Date and Time not valid! Err: " + String(err));
+        validRtcFlag = false;
+    }
+  }
+  else {
+    validRtcFlag = true;
+  }
+  // Is RTC running?
+  if(!rtc.GetIsRunning()) {
+    uint8_t err = rtc.LastError();
+    if(err != 0) {
+      DBG("RTC was not actively running, starting now. Err: " + String(err));
+      rtc.SetIsRunning(true);
+      validRtcFlag = false;
+    }
+  }
+
+  if(validRtcFlag) {
+    // Set date and time on the system
+    DBG("Using Date and Time from RTC.");
+    setTime(rtc.GetDateTime().Unix32Time());
+    printTime();
+  }
+  
+  // never assume the Rtc was last configured by you, so
+  // just clear them to your needed state
+  rtc.Enable32kHzPin(false);
+  rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone); 
 }
+#endif // USE_RTC_DS3231 || USE_RTC_DS1307
 
 bool validTime() {
-  if(now < 1677000000 || (millis() - lastNTPFetchSuccess > (24*60*60*1000))) {
+  if(now < 1672000000 || (millis() - lastNTPFetchSuccess > (24*60*60*1000))) {
     if(validTimeFlag) {
       DBG("Time no longer reliable.");
       validTimeFlag = false;
@@ -92,60 +116,187 @@ bool validTime() {
 }
 
 void printTime() {
-  if(!validTime()) {
-    return;
+  if(validTime()) {
+    char strftime_buf[64];
+
+    // UTC Time
+    // // print Unix time:
+    // //DBG("Unix time = " + String(now));
+    // localtime_r(&now, &timeinfo);
+    // strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+    // DBG("The current UTC date/time is: " + String(strftime_buf));
+
+    // Local time
+    time_t local = time(NULL) + (isDST?dstOffset:stdOffset);
+    localtime_r(&local, &timeinfo);
+    strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+    DBG("Local date/time is: " + String(strftime_buf) + (isDST?" DST":" STD"));
   }
-
-  // UTC Time
-  // now -= localOffset;
-  // // print Unix time:
-  // //DBG("Unix time = " + String(now));
-  // localtime_r(&now, &timeinfo);
-  // strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-  // DBG("The current UTC date/time is: " + String(strftime_buf));
-  // now += localOffset;
-
-  // Local time
-  localtime_r(&now, &timeinfo);
-  strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-  DBG("The current local date/time is: " + String(strftime_buf));
 }
 
 void checkDST() {
-  // DST -> STD - add one hour (3600 seconds)
-  if(validTimeFlag && isDST && (DSTEND || timeinfo.tm_isdst == 0)) {
-    isDST = false;
-    now += 3600;
-    DBG("Time change from DST -> STD");
-  }
-  // STD -> DST - subtract one hour (3600 seconds)
-  else if(validTimeFlag && !isDST && (DSTSTART || timeinfo.tm_isdst == 1)) {
-    isDST = true;
-    now -= 3600;
-    DBG("Time change from STD -> DST");
+  if(validTime() && ((time(NULL) - lastDstCheck > 5) || lastDstCheck == 0)) {    
+    lastDstCheck = time(NULL);
+    int dstFlag = -1;
+    localtime_r(&now, &timeinfo);
+    if(timeinfo.tm_mon == 2) {
+      struct tm dstBegin;
+      dstBegin.tm_year = timeinfo.tm_year;
+      dstBegin.tm_mon = 2;
+#ifdef USDST
+      dstBegin.tm_mday = 8;
+      dstBegin.tm_hour = 2;
+      dstBegin.tm_min = 0;
+      dstBegin.tm_sec = 0;
+      mktime(&dstBegin); // calculate tm_wday
+      dstBegin.tm_mday = dstBegin.tm_mday + ((7 - dstBegin.tm_wday) % 7);
+      // mktime(&dstBegin); // recalculate tm_wday
+      // strftime(buf, sizeof(buf), "%c", &dstBegin);
+      // DBG("DST Begins: " + String(buf) + " local");
+      time_t tdstBegin = mktime(&dstBegin) - stdOffset;
+#endif // USDST
+#ifdef EUDST
+      dstBegin.tm_mday = 25;
+      dstBegin.tm_hour = 1;
+      dstBegin.tm_min = 0;
+      dstBegin.tm_sec = 0;
+      mktime(&dstBegin); // calculate tm_wday
+      dstBegin.tm_mday = dstBegin.tm_mday + ((7 - dstBegin.tm_wday) % 7);
+      // mktime(&dstBegin); // recalculate tm_wday
+      // strftime(buf, sizeof(buf), "%c", &dstBegin);
+      // DBG("DST Begins: " + String(buf) + " local");
+      time_t tdstBegin = mktime(&dstBegin);
+#endif // EUDST
+      if(tdstBegin != -1 && (time(NULL) - tdstBegin >= 0) && isDST == false) { // STD -> DST
+        dstFlag = 1;
+      }
+      else if(tdstBegin != -1 && (time(NULL) - tdstBegin < 0) && isDST == true) { // DST -> STD
+        dstFlag = 0;
+      }
+    }
+    else if(timeinfo.tm_mon == 9) {
+#ifdef EUDST
+      struct tm dstEnd;
+      dstEnd.tm_year = timeinfo.tm_year;
+      dstEnd.tm_mon = 9;
+      dstEnd.tm_mday = 25;
+      dstEnd.tm_hour = 1;
+      dstEnd.tm_min = 0;
+      dstEnd.tm_sec = 0;
+      mktime(&dstEnd); // calculate tm_dow
+      dstEnd.tm_mday = dstEnd.tm_mday + ((7 - dstEnd.tm_wday) % 7);
+      // mktime(&dstEnd); // recalculate tm_dow
+      // strftime(buf, sizeof(buf), "%c", &dstEnd);
+      // DBG("DST Ends: " + String(buf)  + " local");
+      time_t tdstEnd = mktime(&dstEnd);
+      if(tdstEnd != -1 && (time(NULL) - tdstEnd >= 0) && isDST == true) { // DST -> STD
+        dstFlag = 0;
+      }
+      else if(tdstEnd != -1 && (time(NULL) - tdstEnd < 0) && isDST == false) { // STD -> DST
+        dstFlag = 1;
+      }
+#endif //EUDST
+#ifdef USDST
+      if(isDST == false) {
+        dstFlag = 1;
+      }
+#endif // USDST
+    }
+    else if(timeinfo.tm_mon == 10) {
+#ifdef USDST
+      struct tm dstEnd;
+      dstEnd.tm_year = timeinfo.tm_year;
+      dstEnd.tm_mon = 10;
+      dstEnd.tm_mday = 1;
+      dstEnd.tm_hour = 2;
+      dstEnd.tm_min = 0;
+      dstEnd.tm_sec = 0;
+      mktime(&dstEnd); // calculate tm_dow
+      dstEnd.tm_mday = dstEnd.tm_mday + ((7 - dstEnd.tm_wday) % 7);
+      // mktime(&dstEnd); // recalculate tm_dow
+      // strftime(buf, sizeof(buf), "%c", &dstEnd);
+      // DBG("DST Ends: " + String(buf)  + " local");
+      time_t tdstEnd = mktime(&dstEnd) - dstOffset;
+      if(tdstEnd != -1 && (time(NULL) - tdstEnd >= 0) && isDST == true) { // DST -> STD
+        dstFlag = 0;
+      }
+      else if(tdstEnd != -1 && (time(NULL) - tdstEnd < 0) && isDST == false) { // STD -> DST
+        dstFlag = 1;
+      }
+#endif //USDST
+#ifdef EUDST
+      if(isDST == true) {
+        dstFlag = 0;
+      }
+#endif // EUDST
+    }
+    else if((timeinfo.tm_mon == 11 || timeinfo.tm_mon == 0 || timeinfo.tm_mon == 1) && isDST == true) {
+      dstFlag = 0;
+    }
+    else if(timeinfo.tm_mon >= 3 && timeinfo.tm_mon <= 8 && isDST == false) {
+      dstFlag = 1;
+    }
+    if(dstFlag == 1) {
+      isDST = true;
+      DBG("Time change from STD -> DST");
+    }
+    else if(dstFlag == 0) {
+      isDST = false;
+      // Since we are potentially moving back an hour we need to prevent flip flopping back and forth
+      // 2AM -> 1AM, wait 70 minutes -> 2:10AM then start DST checks again.
+      lastDstCheck += ((65-timeinfo.tm_min) * 60); // skip checks until after beginning of next hour
+      DBG("Time change from DST -> STD");
+    }
   }
   return;
 }
 
-bool setTime(time_t previousTime) {
-  
-  // Adjust for local time
-  now += localOffset;
-  slewSecs = now - previousTime;
-  DBG("Time adjust " + String(slewSecs) + " secs");
+// Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
+void sendTime() {
+  if(validTime()) { // Only send time if it is valid
+  DBG("Sending out time");
+  // Only send via Serial interface if WiFi is enabled to prevent loops
+#ifdef USE_WIFI // do not remove this line
+    sendTimeSerial();
+#endif          // do not remove this line
+    sendTimeLoRa();
+    sendTimeESPNow();
+  }
+}
+
+bool setTime(time_t currentTime) {
+  slewSecs = 0;
+  time_t previousTime = now;
+
+  if(currentTime != 0) {
+    now = currentTime;
+    slewSecs = now - previousTime;
+    DBG("Time adjust " + String(slewSecs) + " secs");
+  }
 
   // time(&now);
-  tv.tv_sec = now;
-  settimeofday(&tv,NULL);
-  localtime_r(&now, &timeinfo);
+  localtime_r(&now, &timeinfo); // write to timeinfo struct
+  mktime(&timeinfo); // set tm_isdst flag
   // Check for DST/STD time and adjust accordingly
   checkDST();
-  loadFDRS(now, STATUS_T, 112);
-  loadFDRS(slewSecs, STATUS_T, 113);
-  sendFDRS();
+  tv.tv_sec = now;
+#if defined(ESP32) || defined(ESP8266) // settimeofday may only work with Espressif chips
+  settimeofday(&tv,NULL); // set the RTC time
+#endif
+#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+  RtcDateTime rtcNow;
+  rtcNow.InitWithUnix32Time(now);
+  rtc.SetDateTime(rtcNow);
+#endif
+  // Uncomment below to send time and slew rate to the MQTT server
+  // loadFDRS(now, TIME_T, 111);
+  // loadFDRS(slewSecs, TIME_T, 111);
+  // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
     lastNTPFetchSuccess = millis();
-    printTime();
+    if(TIME_SEND_INTERVAL == 0) {
+      sendTime();
+    }
     return true;
   }
   else {
@@ -153,71 +304,32 @@ bool setTime(time_t previousTime) {
   }
 }
 
+
+
 void updateTime() {
-  static time_t lastUpdate = 0;
+
   if(millis() - lastUpdate > 500) {
-      time(&now);
-      localtime_r(&now, &timeinfo);
-      tv.tv_sec = now;
-      tv.tv_usec = 0;
-      validTime();
-      checkDST();
-      lastUpdate = millis();
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    tv.tv_sec = now;
+    tv.tv_usec = 0;
+    validTime();
+    checkDST();
+    lastUpdate = millis();
+  }
+  if(validTimeFlag && (TIME_SEND_INTERVAL != 0) && (millis() - lastTimeSend) > (1000 * 60 * TIME_SEND_INTERVAL)) {
+    sendTime();
+    lastTimeSend = millis();
   }
 }
 
-void fetchNtpTime() {
-  time_t previousTime = 0;
-
-  if(WiFi.status() == WL_CONNECTED) {
-    FDRSNtp.begin(localPort);
-
-    sendNTPpacket(timeServer); // send an NTP packet to a time server
-    uint i = 0;
-    for(i = 0; i < 800; i++) {
-      if(FDRSNtp.parsePacket())
-        break;
-      delay(10);
-    }
-    if(i < 800) {
-      DBG("Took " + String(i * 10) + "ms to get NTP response from " + String(timeServer) + ".");
-      NTPFetchFail = 0;
-      // We've received a packet, read the data from it
-      FDRSNtp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
-
-      // the timestamp starts at byte 40 of the received packet and is four bytes,
-      // or two words, long. First, extract the two words:
-
-      unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-      unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-      // combine the four bytes (two words) into a long integer
-      // this is NTP time (seconds since Jan 1 1900):
-      unsigned long secsSince1900 = highWord << 16 | lowWord;
-      //DBG("Seconds since Jan 1 1900 = " + String(secsSince1900));
-      
-      // now convert NTP time into everyday time:
-      // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-      const unsigned long seventyYears = 2208988800UL;
-      // subtract seventy years:
-      // now is epoch format - seconds since Jan 1 1970
-      previousTime = now;
-      now = secsSince1900 - seventyYears;
-      setTime(previousTime);
-    }
-    else {
-      NTPFetchFail++;
-      DBG("Timeout getting a NTP response. " + String(NTPFetchFail) + " consecutive failures.");
-      // If unable to Update the time after N tries then set the time to be not valid.
-      if(NTPFetchFail > 5) {
-        validTimeFlag = false;
-        DBG("Time no longer reliable.");
-      }
-    }
-  }
-}
-
-void begin_ntp() {
-  fetchNtpTime();
+void adjTimeforNetDelay(time_t newOffset) {
+  static time_t previousOffset = 0;
   updateTime();
-  printTime();
+  // check to see if offset and current time are valid
+  if(newOffset < UINT32_MAX && validTimeFlag) {
+    now = now + newOffset - previousOffset;
+    previousOffset = newOffset;
+    DBG("Time adj by " + String(newOffset) + " secs");
+  }
 }
