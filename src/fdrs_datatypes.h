@@ -48,11 +48,10 @@ enum
   event_internal
 };
 
-#ifdef ESP8266
-enum esp_err_t {
-  ESP_FAIL,
-  ESP_OK
-};
+#ifndef ESP32
+typedef int esp_err_t;
+#define ESP_FAIL 0
+#define ESP_OK 1
 #endif
 
 #ifndef FDRS_DATA_TYPES

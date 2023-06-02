@@ -6,6 +6,8 @@
 //
 
 #include <Arduino.h>
+#include "hostdefs.h"
+#include "credentials.h"
 #include "fdrs_gateway_config.h"
 #include <fdrs_gateway.h>   
 

@@ -65,8 +65,9 @@ void resendLog();
 void releaseLogBuffer();
 void printFDRS(DataReading*, int);
 
-#include "hostdefs.h"
-#include "credentials.h"
+#ifdef USE_I2C
+  #include <Wire.h>
+#endif
 #ifdef USE_OLED
   #include "fdrs_oled.h"
 #endif
@@ -83,7 +84,6 @@ void printFDRS(DataReading*, int);
 #ifdef USE_WIFI
   #include "fdrs_gateway_wifi.h"
   #include "fdrs_gateway_mqtt.h"
-  #include "fdrs_gateway_ota.h"
 #endif
 #if defined(USE_FS_LOG) || defined(USE_SD_LOG)
   #include "fdrs_gateway_filesystem.h"
@@ -140,8 +140,13 @@ void beginFDRS()
   Serial.begin(115200);
 #elif defined(ESP32)
   Serial.begin(115200);
-  Serial.printf("FDRS_Gateway_Test 3607c8 UART <-> ESP-NOW\n");
   UART_IF.begin(115200, SERIAL_8N1, RXD2, TXD2);
+#endif
+#ifdef USE_I2C
+  Wire.begin(I2C_SDA, I2C_SCL);
+#endif
+#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+  begin_rtc();
 #endif
 #ifdef USE_OLED
   init_oled();
@@ -158,7 +163,6 @@ void beginFDRS()
   DBG("Connected.");
   begin_mqtt();
   begin_ntp();
-  begin_OTA();
 #endif
 #ifdef USE_ESPNOW
   begin_espnow();
@@ -218,10 +222,13 @@ void loopFDRS()
   handleSerial();
 #ifdef USE_LORA
   handleLoRa();
+  // Ping LoRa time master to estimate time delay in radio link
+  if(timeMasterLoRa != 0x0000 && netTimeOffset == UINT32_MAX) {
+    pingLoRaTimeMaster();
+  }
 #endif
 #ifdef USE_WIFI
   handleMQTT();
-  handleOTA();
 #endif
 #ifdef USE_OLED
   drawPageOLED(true);
