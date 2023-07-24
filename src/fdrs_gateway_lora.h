@@ -436,9 +436,10 @@ crcResult getLoRa()
             }
           }
           else if (ln == 1 && receiveData[0].cmd == cmd_time) {
-            timeMasterLoRa = sourceMAC;
-            setTime(receiveData[0].param);
             DBG("Time rcv from LoRa 0x" + String(sourceMAC, HEX));
+            timeMasterLoRa = sourceMAC;
+            DBG("LoRa time master is 0x" + String(timeMasterLoRa, HEX));
+            setTime(receiveData[0].param);
             adjTimeforNetDelay(netTimeOffset);
           }
           else
@@ -471,9 +472,10 @@ crcResult getLoRa()
             }
           }
           else if (ln == 1 && receiveData[0].cmd == cmd_time) {
-            timeMasterLoRa = sourceMAC;
-            setTime(receiveData[0].param);
             DBG("Time rcv from LoRa 0x" + String(sourceMAC, HEX));
+            timeMasterLoRa = sourceMAC;
+            DBG("LoRa time master is 0x" + String(timeMasterLoRa, HEX));
+            setTime(receiveData[0].param);
             adjTimeforNetDelay(netTimeOffset);
           }
           else
@@ -669,17 +671,20 @@ void sendTimeLoRa() {
 
   DBG("Sending time via LoRa");
   SystemPacket spTimeLoRa = {.cmd = cmd_time, .param = now};
+  DBG("Sending time to LoRa broadcast");
   transmitLoRa(&loraBroadcast, &spTimeLoRa, 1);
   // Do not send to LoRa peers if their address is 0x..00
   if(((LoRa1 & 0x00FF) != 0x0000) && (LoRa1 != timeMasterLoRa)) {
-  spTimeLoRa.param = now;
-  // add LoRa neighbor 1
-  transmitLoRa(&LoRa1, &spTimeLoRa, 1);
+    DBG("Sending time to LoRa Neighbor 1");
+    spTimeLoRa.param = now;
+    // add LoRa neighbor 1
+    transmitLoRa(&LoRa1, &spTimeLoRa, 1);
   }
   if(((LoRa2 & 0x00FF) != 0x0000) && (LoRa2 != timeMasterLoRa)) {
-  spTimeLoRa.param = now;
-  // add LoRa neighbor 2
-  transmitLoRa(&LoRa2, &spTimeLoRa, 1);
+    DBG("Sending time to LoRa Neighbor 2");
+    spTimeLoRa.param = now;
+    // add LoRa neighbor 2
+    transmitLoRa(&LoRa2, &spTimeLoRa, 1);
   }
 }
 

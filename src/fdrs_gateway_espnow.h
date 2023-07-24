@@ -25,8 +25,18 @@ uint8_t timeMasterEspNow[6];
 uint8_t ESPNOW1[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_1};
 uint8_t ESPNOW2[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_2};
 extern time_t now;
+time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
+void recvTimeEspNow() {
+  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
+  memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
+  DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
+  if(millis() - lastRecvTimeEspNow > 60000) {
+    setTime(theCmd.param); 
+    lastRecvTimeEspNow = millis();
+  }
+}
 
 // Set ESP-NOW send and receive callbacks for either ESP8266 or ESP32
 #if defined(ESP8266)
@@ -54,7 +64,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
             pingFlagEspNow = true;
             break;
         case cmd_time:
-            setTime(theCmd.param);    
+            recvTimeEspNow();    
             break;
         }
     return;
@@ -266,13 +276,16 @@ esp_err_t sendTimeESPNow() {
   DBG("Sending time via ESP-NOW");
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
 
-  if(ESPNOW1 != timeMasterEspNow) {
+  if((ESPNOW1 != timeMasterEspNow) && ESPNOW1[5] != 0x00) {
+    DBG("Sending time to ESP-NOW Peer 1");
     result1 = sendESPNow(ESPNOW1, &sys_packet);
   }
-  if(ESPNOW2 != timeMasterEspNow) {
+  if((ESPNOW2 != timeMasterEspNow) && ESPNOW2[5] != 0x00) {
+    DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
-  result3 = sendESPNow(nullptr, &sys_packet);
+  // DBG("Sending time to ESP-NOW registered peers");
+  // result3 = sendESPNow(nullptr, &sys_packet);
 
   if(result1 != ESP_OK || result2 != ESP_OK || result3 != ESP_OK){
     return ESP_FAIL;
@@ -394,13 +407,6 @@ esp_err_t sendESPNow(uint8_t address) {
   uint8_t temp_peer[] = {MAC_PREFIX, address};
   result = sendESPNowTempPeer(temp_peer);
   return result;
-}
-
-
-void recvTimeEspNow() {
-  memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
-  setTime(theCmd.param); 
-  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
 }
 
 // FDRS node pings gateway and listens for a defined amount of time for a reply

@@ -318,8 +318,8 @@ void updateTime() {
     lastUpdate = millis();
   }
   if(validTimeFlag && (TIME_SEND_INTERVAL != 0) && (millis() - lastTimeSend) > (1000 * 60 * TIME_SEND_INTERVAL)) {
-    sendTime();
     lastTimeSend = millis();
+    sendTime();
   }
 }
 
