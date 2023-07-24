@@ -3,62 +3,62 @@
 //  GATEWAY CONFIGURATION
 
 //Addresses
-#define UNIT_MAC           0x22  // The address of this gateway
+#define UNIT_MAC           0x20  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0x21  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_1  0x00  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x00  // Address of ESP-NOW neighbor #2
-#define LORA_NEIGHBOR_1    0x23  // Address of LoRa neighbor #1
+#define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
 // Interfaces
-#define USE_ESPNOW  
-#define USE_LORA
-// #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
+// #define USE_ESPNOW  
+// #define USE_LORA
+#define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
 // Actions
 // Options: sendESPNowNbr(1 or 2); sendESPNowPeers(); sendLoRaNbr(1 or 2); broadcastLoRa(); sendSerial(); sendMQTT();
-#define ESPNOWG_ACT    sendESPNowNbr(1);
-#define LORAG_ACT      sendESPNowNbr(1);
-#define SERIAL_ACT     
-#define MQTT_ACT          
-#define INTERNAL_ACT   sendESPNowNbr(1);
-#define ESPNOW1_ACT    sendESPNowPeers(); sendLoRaNbr(1);
+#define ESPNOWG_ACT    
+#define LORAG_ACT      
+#define SERIAL_ACT     sendMQTT();
+#define MQTT_ACT       sendSerial();
+#define INTERNAL_ACT   sendMQTT();
+#define ESPNOW1_ACT    
 #define ESPNOW2_ACT                    
-#define LORA1_ACT      sendESPNowNbr(1);
+#define LORA1_ACT      
 #define LORA2_ACT 
 
 // LoRa Configuration
 #define RADIOLIB_MODULE SX1276
-#define LORA_SS    26
+#define LORA_SS    RADIOLIB_NC
 #define LORA_RST   RADIOLIB_NC
-#define LORA_DIO   5
+#define LORA_DIO   RADIOLIB_NC
 #define LORA_BUSY  RADIOLIB_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
 // //#define USE_SX126X
 
 #define CUSTOM_SPI
-#define LORA_SPI_SCK  18
-#define LORA_SPI_MISO 19
-#define LORA_SPI_MOSI 23
+#define LORA_SPI_SCK  RADIOLIB_NC
+#define LORA_SPI_MISO RADIOLIB_NC
+#define LORA_SPI_MOSI RADIOLIB_NC
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
 // #define DEBUG_CONFIG
 
 // I2C - OLED or rtc
 #define USE_I2C
-#define I2C_SDA 21
-#define I2C_SCL 22
+#define I2C_SDA GPIO_NUM_5
+#define I2C_SCL GPIO_NUM_6
 
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
-#define USE_OLED    
+// #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
 #define OLED_RST -1
 
 // UART data interface pins (if available)
-#define RXD2 16
-#define TXD2 17
+#define RXD2 GPIO_NUM_1
+#define TXD2 GPIO_NUM_2
 
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
@@ -91,10 +91,15 @@
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
 #define TIME_SEND_INTERVAL 0    // Time, in minutes, between sending out time to remote devices
 
+// RTC - I2C
+#define USE_RTC_DS3231
+#define RTC_ADDR 0x57
+// #define USE_RTC_DS1307
+// #define RTC_ADDR 0x68
+
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging
 //#define USE_FS_LOG        //Enable filesystem (flash) logging
 #define LOGBUF_DELAY 10000  // Log Buffer Delay - in milliseconds
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
-

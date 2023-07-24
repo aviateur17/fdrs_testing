@@ -136,6 +136,7 @@ void loadFDRS(float d, uint8_t t, uint16_t id)
 
 void beginFDRS()
 {
+  delay(10000); // ESP32S3 takes several seconds to connect to COM port so do not see the initialization
 #if defined(ESP8266)
   Serial.begin(115200);
 #elif defined(ESP32)
