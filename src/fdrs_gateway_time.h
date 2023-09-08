@@ -294,7 +294,8 @@ bool setTime(time_t currentTime) {
   // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
     lastNTPFetchSuccess = millis();
-    if(TIME_SEND_INTERVAL == 0) {
+    if(TIME_SEND_INTERVAL == 0 && ((millis() - lastTimeSend > 5000) || lastTimeSend == 0)) { // avoid sending twice on start with RTC and WiFi
+      lastTimeSend = millis();
       sendTime();
     }
     return true;
