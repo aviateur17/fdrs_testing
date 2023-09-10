@@ -33,8 +33,8 @@ void recvTimeEspNow() {
   memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
   DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
   if(millis() - lastRecvTimeEspNow > 60000) {
-    setTime(theCmd.param); 
     lastRecvTimeEspNow = millis();
+    setTime(theCmd.param); 
   }
 }
 

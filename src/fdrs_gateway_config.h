@@ -13,7 +13,7 @@
 // Interfaces
 // #define USE_ESPNOW  
 // #define USE_LORA
-#define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
+// #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
 // Actions
@@ -89,7 +89,7 @@
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     5      // Time, in minutes, between fetching time from NTP server, 0 = only on startup
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 0    // Time, in minutes, between sending out time to remote devices, 0 = only send when time is updated and not periodically
+#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices, 0 = only send when time is updated and not periodically
 
 // RTC - I2C
 #define USE_RTC_DS3231

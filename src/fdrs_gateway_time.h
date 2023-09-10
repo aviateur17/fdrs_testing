@@ -256,7 +256,7 @@ void sendTime() {
   if(validTime()) { // Only send time if it is valid
   DBG("Sending out time");
   // Only send via Serial interface if WiFi is enabled to prevent loops
-#ifdef USE_WIFI // do not remove this line
+#if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
     sendTimeSerial();
 #endif          // do not remove this line
     sendTimeLoRa();
