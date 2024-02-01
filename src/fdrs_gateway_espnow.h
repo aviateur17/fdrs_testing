@@ -25,11 +25,16 @@ uint8_t timeMasterEspNow[6];
 uint8_t ESPNOW1[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_1};
 uint8_t ESPNOW2[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_2};
 extern time_t now;
+extern bool timeMasterSerial;
 time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
 void recvTimeEspNow() {
   DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
+  if(timeMasterSerial) {
+    DBG("Ignoring incoming time. Serial interface is time master."); 
+    return;
+  }
   memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
   DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
   if(millis() - lastRecvTimeEspNow > 60000) {

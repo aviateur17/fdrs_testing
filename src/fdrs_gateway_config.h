@@ -67,7 +67,7 @@
 #define WIFI_PASS   AP_PASS
 
 // Use Static IP Address for WiFi connections
-#define USE_STATIC_IPADDRESS     
+// #define USE_STATIC_IPADDRESS     
 #define HOST_IPADDRESS      HOSTIPADDRESS
 #define GW_IPADDRESS        GATEWAY
 #define SUBNET_ADDRESS      SUBNET
