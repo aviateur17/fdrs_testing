@@ -7,6 +7,7 @@
 #endif
 
 extern time_t now;
+bool timeMasterSerial = false;   // Denotes that the time master is sending time via serial interface - don't accept time from other interfaces.
 
 void getSerial() {
   String incomingString;
@@ -40,6 +41,7 @@ void getSerial() {
     else if(obj.containsKey("cmd")) { // SystemPacket
       cmd_t c = doc[0]["cmd"];
       if(c == cmd_time) {
+        timeMasterSerial = true;
         setTime(doc[0]["param"]); 
         DBG("Incoming Serial: time");
       }
@@ -48,7 +50,7 @@ void getSerial() {
       }
     }
     else {    // Who Knows???
-      DBG("Incoming Serial: unknown");
+      DBG("Incoming Serial: unknown: " + incomingString);
     }
   }
 }

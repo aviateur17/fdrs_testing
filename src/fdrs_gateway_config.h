@@ -21,26 +21,26 @@
 #define ESPNOWG_ACT    
 #define LORAG_ACT      
 #define SERIAL_ACT     sendMQTT();
-#define MQTT_ACT       sendSerial();   
+#define MQTT_ACT       sendSerial();
 #define INTERNAL_ACT   sendMQTT();
 #define ESPNOW1_ACT    
-#define ESPNOW2_ACT    
+#define ESPNOW2_ACT                    
 #define LORA1_ACT      
 #define LORA2_ACT 
 
 // LoRa Configuration
 #define RADIOLIB_MODULE SX1276
-#define LORA_SS    26
+#define LORA_SS    RADIOLIB_NC
 #define LORA_RST   RADIOLIB_NC
-#define LORA_DIO   5
+#define LORA_DIO   RADIOLIB_NC
 #define LORA_BUSY  RADIOLIB_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
 // //#define USE_SX126X
 
 #define CUSTOM_SPI
-#define LORA_SPI_SCK  18
-#define LORA_SPI_MISO 19
-#define LORA_SPI_MOSI 23
+#define LORA_SPI_SCK  RADIOLIB_NC
+#define LORA_SPI_MISO RADIOLIB_NC
+#define LORA_SPI_MOSI RADIOLIB_NC
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
 // #define DEBUG_CONFIG
@@ -59,8 +59,8 @@
 #define OLED_RST -1
 
 // UART data interface pins (if available)
-#define RXD2 14
-#define TXD2 15
+#define RXD2 15
+#define TXD2 14
 
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
@@ -69,7 +69,7 @@
 #define WIFI_PASS   AP_PASS
 
 // Use Static IP Address for WiFi connections
-#define USE_STATIC_IPADDRESS     
+// #define USE_STATIC_IPADDRESS     
 #define HOST_IPADDRESS      HOSTIPADDRESS
 #define GW_IPADDRESS        GATEWAY
 #define SUBNET_ADDRESS      SUBNET
@@ -89,9 +89,9 @@
 #define TIME_SERVER       "0.us.pool.ntp.org"       // NTP time server to use. If FQDN at least one DNS server is required to resolve name
 #define STD_OFFSET      (-6)                // Local standard time offset in hours from UTC - if unsure, check https://time.is
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
-#define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server
+#define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server, 0 = only on startup
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 5    // Time, in minutes, between sending out time to remote devices
+#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices, 0 = only send when time is updated and not periodically
 
 // RTC - I2C
 #define USE_RTC_DS3231
@@ -105,4 +105,3 @@
 #define LOGBUF_DELAY 10000  // Log Buffer Delay - in milliseconds
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
-
