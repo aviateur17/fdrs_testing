@@ -29,10 +29,11 @@ time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
 void recvTimeEspNow() {
-  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
-  memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
-  DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
+  // Why are we being called twice when the sender only sends one message????????? 2/6/2024 JL
   if(millis() - lastRecvTimeEspNow > 60000) {
+    DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
+    memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
+    DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
     setTime(theCmd.param); 
     lastRecvTimeEspNow = millis();
   }
@@ -64,7 +65,14 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
             pingFlagEspNow = true;
             break;
         case cmd_time:
+            printf("%x\n",theCmd.cmd);
+            printf("%x\n",theCmd.param);
+            DBG(theCmd.cmd);
+            DBG(theCmd.param);
+            DBG(sizeof(theCmd));
             recvTimeEspNow();    
+            break;
+        default:
             break;
         }
     return;
