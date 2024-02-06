@@ -93,7 +93,7 @@ const uint8_t mac_prefix[] = {MAC_PREFIX};
 const uint8_t selfAddress[] = {MAC_PREFIX, UNIT_MAC};
 #endif
 
-bool pingFlag = false;
+bool pingFlagLoRa = false;
 bool transmitFlag = false;            // flag to indicate transmission or reception state
 volatile bool enableInterrupt = true; // disable interrupt when it's not needed
 volatile bool operationDone = false;  // flag to indicate that a packet was sent or received
@@ -425,7 +425,7 @@ crcResult getLoRa()
           { // We have received a ping request or reply??
             if (receiveData[0].param == 1)
             { // This is a reply to our ping request
-              pingFlag = true;
+              pingFlagLoRa = true;
               DBG("We have received a ping reply via LoRa from address " + String(sourceMAC, HEX));
             }
             else if (receiveData[0].param == 0)
@@ -436,9 +436,10 @@ crcResult getLoRa()
             }
           }
           else if (ln == 1 && receiveData[0].cmd == cmd_time) {
-            timeMasterLoRa = sourceMAC;
-            setTime(receiveData[0].param);
             DBG("Time rcv from LoRa 0x" + String(sourceMAC, HEX));
+            timeMasterLoRa = sourceMAC;
+            DBG("LoRa time master is 0x" + String(timeMasterLoRa, HEX));
+            setTime(receiveData[0].param);
             adjTimeforNetDelay(netTimeOffset);
           }
           else
@@ -460,7 +461,7 @@ crcResult getLoRa()
           { // We have received a ping request or reply??
             if (receiveData[0].param == 1)
             { // This is a reply to our ping request
-              pingFlag = true;
+              pingFlagLoRa = true;
               DBG("We have received a ping reply via LoRa from address " + String(sourceMAC, HEX));
             }
             else if (receiveData[0].param == 0)
@@ -471,9 +472,10 @@ crcResult getLoRa()
             }
           }
           else if (ln == 1 && receiveData[0].cmd == cmd_time) {
-            timeMasterLoRa = sourceMAC;
-            setTime(receiveData[0].param);
             DBG("Time rcv from LoRa 0x" + String(sourceMAC, HEX));
+            timeMasterLoRa = sourceMAC;
+            DBG("LoRa time master is 0x" + String(timeMasterLoRa, HEX));
+            setTime(receiveData[0].param);
             adjTimeforNetDelay(netTimeOffset);
           }
           else
@@ -669,17 +671,20 @@ void sendTimeLoRa() {
 
   DBG("Sending time via LoRa");
   SystemPacket spTimeLoRa = {.cmd = cmd_time, .param = now};
+  DBG("Sending time to LoRa broadcast");
   transmitLoRa(&loraBroadcast, &spTimeLoRa, 1);
   // Do not send to LoRa peers if their address is 0x..00
   if(((LoRa1 & 0x00FF) != 0x0000) && (LoRa1 != timeMasterLoRa)) {
-  spTimeLoRa.param = now;
-  // add LoRa neighbor 1
-  transmitLoRa(&LoRa1, &spTimeLoRa, 1);
+    DBG("Sending time to LoRa Neighbor 1");
+    spTimeLoRa.param = now;
+    // add LoRa neighbor 1
+    transmitLoRa(&LoRa1, &spTimeLoRa, 1);
   }
   if(((LoRa2 & 0x00FF) != 0x0000) && (LoRa2 != timeMasterLoRa)) {
-  spTimeLoRa.param = now;
-  // add LoRa neighbor 2
-  transmitLoRa(&LoRa2, &spTimeLoRa, 1);
+    DBG("Sending time to LoRa Neighbor 2");
+    spTimeLoRa.param = now;
+    // add LoRa neighbor 2
+    transmitLoRa(&LoRa2, &spTimeLoRa, 1);
   }
 }
 
@@ -693,17 +698,17 @@ uint32_t pingFDRSLoRa(uint16_t *address, uint32_t timeout)
     transmitLoRa(address, &sys_packet, 1);
     DBG("LoRa ping sent to address: 0x" + String(*address, HEX));
     uint32_t ping_start = millis();
-    pingFlag = false;
+    pingFlagLoRa = false;
     while ((millis() - ping_start) <= timeout)
     {
         handleLoRa();
         #ifdef ESP8266
             yield();
         #endif
-        if (pingFlag)
+        if (pingFlagLoRa)
         {   
             DBG("LoRa Ping Returned: " + String(millis() - ping_start) + "ms.");
-            pingFlag = false;
+            pingFlagLoRa = false;
             return (millis() - ping_start);
         }
     }

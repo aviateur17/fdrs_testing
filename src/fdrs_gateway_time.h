@@ -256,7 +256,7 @@ void sendTime() {
   if(validTime()) { // Only send time if it is valid
   DBG("Sending out time");
   // Only send via Serial interface if WiFi is enabled to prevent loops
-#ifdef USE_WIFI // do not remove this line
+#if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
     sendTimeSerial();
 #endif          // do not remove this line
     sendTimeLoRa();
@@ -294,7 +294,8 @@ bool setTime(time_t currentTime) {
   // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
     lastNTPFetchSuccess = millis();
-    if(TIME_SEND_INTERVAL == 0) {
+    if(TIME_SEND_INTERVAL == 0 && ((millis() - lastTimeSend > 5000) || lastTimeSend == 0)) { // avoid sending twice on start with RTC and WiFi
+      lastTimeSend = millis();
       sendTime();
     }
     return true;
@@ -318,8 +319,8 @@ void updateTime() {
     lastUpdate = millis();
   }
   if(validTimeFlag && (TIME_SEND_INTERVAL != 0) && (millis() - lastTimeSend) > (1000 * 60 * TIME_SEND_INTERVAL)) {
-    sendTime();
     lastTimeSend = millis();
+    sendTime();
   }
 }
 

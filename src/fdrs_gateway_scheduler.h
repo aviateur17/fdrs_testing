@@ -12,6 +12,9 @@ ScheduleItem theSchedule[16];
 
 bool scheduleFDRS(void (*added_func)(), uint32_t added_interval)
 {
+    if(added_interval == 0) {
+        return false;
+    }
     ScheduleItem arg = {.interval = added_interval, .start = millis(), .functionName = added_func, .active = true};
     for (int i = 0; i < 16; i++)
     {
