@@ -2,10 +2,13 @@
 #ifdef USE_OLED
 #define DBG(a) debug_OLED(String(a)); \
 Serial.print(millis()); \
-Serial.print("| "); \
+Serial.print(" | "); \
 Serial.println(a);
 #else
-#define DBG(a) Serial.println(a);
+#define DBG(a) \
+Serial.print(millis()); \
+Serial.print(" | "); \
+Serial.println(a);
 #endif
 #else
 #ifdef USE_OLED

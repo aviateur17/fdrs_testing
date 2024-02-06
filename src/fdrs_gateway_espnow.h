@@ -29,13 +29,14 @@ extern bool timeMasterSerial;
 time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
+SystemPacket test;
+
 void recvTimeEspNow() {
   // Why are we being called twice when the sender only sends one message????????? 2/6/2024 JL
   if(millis() - lastRecvTimeEspNow > 60000) {
     DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
     memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
     DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
-    setTime(theCmd.param); 
     lastRecvTimeEspNow = millis();
     setTime(theCmd.param); 
   }
@@ -61,17 +62,16 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
     DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
     memcpy(&incMAC, mac, sizeof(incMAC));
+    test.cmd = theCmd.cmd;
+    test.param = theCmd.param;
     switch (theCmd.cmd)
         {
         case cmd_ping:
             pingFlagEspNow = true;
             break;
         case cmd_time:
-            printf("%x\n",theCmd.cmd);
-            printf("%x\n",theCmd.param);
-            DBG(theCmd.cmd);
-            DBG(theCmd.param);
-            DBG(sizeof(theCmd));
+            printf("%lu | %x\n",millis(), test.cmd);
+            printf("%lu | %x\n",millis(), test.param);
             recvTimeEspNow();    
             break;
         default:
@@ -235,6 +235,9 @@ void add_espnow_peer()
 esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) {
   esp_err_t sendResult;
   
+  data->param = 1707253932;
+  printf("sendESPNow func data: %lu\n",data->param);
+
   if (dest != nullptr && !esp_now_is_peer_exist(dest))
   {
 #ifdef ESP8266
@@ -285,6 +288,8 @@ esp_err_t sendTimeESPNow() {
   esp_err_t result1 = ESP_OK, result2 = ESP_OK, result3 = ESP_OK;
   DBG("Sending time via ESP-NOW");
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
+
+  DBG(now);
 
   if((ESPNOW1 != timeMasterEspNow) && ESPNOW1[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 1");

@@ -254,7 +254,7 @@ void checkDST() {
 // Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
 void sendTime() {
   if(validTime()) { // Only send time if it is valid
-  DBG("Sending out time");
+    DBG("Sending out time");
   // Only send via Serial interface if WiFi is enabled to prevent loops
 #if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
     sendTimeSerial();
