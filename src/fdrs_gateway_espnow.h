@@ -25,8 +25,11 @@ uint8_t timeMasterEspNow[6];
 uint8_t ESPNOW1[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_1};
 uint8_t ESPNOW2[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_2};
 extern time_t now;
+extern bool timeMasterSerial;
 time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
+
+SystemPacket test;
 
 void recvTimeEspNow() {
   // Why are we being called twice when the sender only sends one message????????? 2/6/2024 JL
@@ -34,8 +37,8 @@ void recvTimeEspNow() {
     DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
     memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
     DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
-    setTime(theCmd.param); 
     lastRecvTimeEspNow = millis();
+    setTime(theCmd.param); 
   }
 }
 
@@ -59,17 +62,16 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
     DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
     memcpy(&incMAC, mac, sizeof(incMAC));
+    // test.cmd = theCmd.cmd;
+    // test.param = theCmd.param;
     switch (theCmd.cmd)
         {
         case cmd_ping:
             pingFlagEspNow = true;
             break;
         case cmd_time:
-            printf("%x\n",theCmd.cmd);
-            printf("%x\n",theCmd.param);
-            DBG(theCmd.cmd);
-            DBG(theCmd.param);
-            DBG(sizeof(theCmd));
+            printf("%lu | %x\n",millis(), theCmd.cmd);
+            printf("%lu | %x\n",millis(), theCmd.param);
             recvTimeEspNow();    
             break;
         default:
@@ -233,6 +235,8 @@ void add_espnow_peer()
 esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) {
   esp_err_t sendResult;
   
+  printf("%lu | sendESPNow func data: %lu\n",millis(), data->param);
+
   if (dest != nullptr && !esp_now_is_peer_exist(dest))
   {
 #ifdef ESP8266
@@ -284,6 +288,8 @@ esp_err_t sendTimeESPNow() {
   DBG("Sending time via ESP-NOW");
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
 
+  DBG(now);
+
   if((ESPNOW1 != timeMasterEspNow) && ESPNOW1[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 1");
     result1 = sendESPNow(ESPNOW1, &sys_packet);
@@ -292,8 +298,8 @@ esp_err_t sendTimeESPNow() {
     DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
-  // DBG("Sending time to ESP-NOW registered peers");
-  // result3 = sendESPNow(nullptr, &sys_packet);
+  DBG("Sending time to ESP-NOW registered peers");
+  result3 = sendESPNow(nullptr, &sys_packet);
 
   if(result1 != ESP_OK || result2 != ESP_OK || result3 != ESP_OK){
     return ESP_FAIL;

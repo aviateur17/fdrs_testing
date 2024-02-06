@@ -119,11 +119,19 @@ void begin_wifi()
   }
 #else
   WiFi.begin(ssid, password);
+  int connectTries = 0;
   while (WiFi.status() != WL_CONNECTED)
   {
+    connectTries++;
     DBG("Connecting to WiFi...");
     DBG(FDRS_WIFI_SSID);
-    delay(500);
+    delay(1000);
+    WiFi.reconnect();
+    if(connectTries >= 15) {
+        DBG("Restarting ESP32: WiFi issues\n");
+        vTaskDelay(5000/portTICK_PERIOD_MS);  
+        ESP.restart();
+      }
   }
 #endif // USE_ETHERNET
 }
