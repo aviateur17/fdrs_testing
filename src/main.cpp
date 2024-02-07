@@ -9,16 +9,19 @@
 #include "credentials.h"
 #include "hostdefs.h"
 #include "fdrs_gateway_config.h"
-#include <fdrs_gateway.h>                                                                                                                                                                                                               
+#include <fdrs_gateway.h>   
 
-// time_t lastRunTime = 0;
-// uint8_t LoRaAddress[] = { 0xFF, 0xFF };
+void someData() {
+    loadFDRS(55.243,2,0x23);
+    sendFDRS();
+}
 
 void setup() {
     beginFDRS();
 }
 
 void loop() {
+    static unsigned long t = 0;
     loopFDRS();
     // // Send time to LoRa broadcast address every 5 minutes.
     // // LoRa controllers should receive time and report via serial
@@ -29,4 +32,7 @@ void loop() {
     //     #endif
     //     lastRunTime = millis();
     // }
+
+    // send some data every minute
+    scheduleFDRS(someData,1000*60);
 }

@@ -31,8 +31,9 @@
 // LoRa Configuration
 #define RADIOLIB_MODULE SX1276
 #define LORA_SS    26
-#define LORA_RST   29
+#define LORA_RST   RADIOLIB_NC
 #define LORA_DIO   5
+#define LORA_BUSY  RADIOLIB_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
 // //#define USE_SX126X
 
@@ -42,8 +43,9 @@
 #define LORA_SPI_MOSI 23
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
+// #define DEBUG_CONFIG
 
-// I2C - OLED or rtc
+// I2C - OLED or RTC
 #define USE_I2C
 #define I2C_SDA 21
 #define I2C_SCL 22
@@ -55,8 +57,8 @@
 #define OLED_RST -1
 
 // UART data interface pins (if available)
-#define RXD2 14
-#define TXD2 15
+#define RXD2 16
+#define TXD2 17
 
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
@@ -65,7 +67,7 @@
 #define WIFI_PASS   AP_PASS
 
 // Use Static IP Address for WiFi connections
-#define USE_STATIC_IPADDRESS     
+// #define USE_STATIC_IPADDRESS     
 #define HOST_IPADDRESS      HOSTIPADDRESS
 #define GW_IPADDRESS        GATEWAY
 #define SUBNET_ADDRESS      SUBNET
@@ -76,8 +78,8 @@
 #define MQTT_ADDR   MQTT_SERVER
 // #define MQTT_PORT   1883 // Default MQTT port is 1883
 #define MQTT_AUTH   //Enable MQTT authentication 
-// #define MQTT_USER   "iot123"
-// #define MQTT_PASS   "iot123!"
+// #define MQTT_USER   "user"
+// #define MQTT_PASS   "pass"
 
 // NTP Time settings
 #define USDST
@@ -87,7 +89,7 @@
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     0      // Time, in minutes, between fetching time from NTP server
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 0    // Time, in minutes, between sending out time to remote devices
+#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging
@@ -95,4 +97,3 @@
 #define LOGBUF_DELAY 10000  // Log Buffer Delay - in milliseconds
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
-

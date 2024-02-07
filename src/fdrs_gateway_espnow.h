@@ -25,8 +25,27 @@ uint8_t timeMasterEspNow[6];
 uint8_t ESPNOW1[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_1};
 uint8_t ESPNOW2[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_2};
 extern time_t now;
-bool pingFlag = false;
+extern uint8_t timeMaster;
+extern unsigned long timeMasterLastMsg;
+// time_t lastRecvTimeEspNow;
+bool pingFlagEspNow = false;
 
+void recvTimeEspNow(uint32_t t) {
+  // Process time if there is no master set yet
+  if(timeMaster == 0x00 || timeMaster == incMAC[5]) {
+    DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
+    if(timeMaster == 0x00) {
+      timeMaster = incMAC[5];
+      DBG("ESP-NOW time master is 0x" + String(incMAC[5], HEX));
+    }
+    setTime(t);
+    timeMasterLastMsg = millis();
+  }
+  else {
+    DBG("ESP-NOW 0x" + String(incMAC[5], HEX) + " is not time master, discarding request");
+  }
+  return;
+}
 
 // Set ESP-NOW send and receive callbacks for either ESP8266 or ESP32
 #if defined(ESP8266)
@@ -47,32 +66,24 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
   {
     DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
-    memcpy(&incMAC, mac, sizeof(incMAC));
-    switch (theCmd.cmd)
-        {
-        case cmd_ping:
-            pingFlag = true;
-            break;
-        case cmd_time:
-            setTime(theCmd.param);    
-            break;
-        }
-    return;
+    // processing is handled in the handlecommands() function in gateway.h - do not process here
   }
-  memcpy(&theData, incomingData, sizeof(theData));
-  DBG("Incoming ESP-NOW Data Reading from 0x" + String(incMAC[5], HEX));
-  ln = len / sizeof(DataReading);
-  if (memcmp(&incMAC, &ESPNOW1, 6) == 0)
-  {
-    newData = event_espnow1;
-    return;
+  else {
+    memcpy(&theData, incomingData, sizeof(theData));
+    DBG("Incoming ESP-NOW Data Reading from 0x" + String(incMAC[5], HEX));
+    ln = len / sizeof(DataReading);
+    if (memcmp(&incMAC, &ESPNOW1, 6) == 0)
+    {
+      newData = event_espnow1;
+      return;
+    }
+    if (memcmp(&incMAC, &ESPNOW2, 6) == 0)
+    {
+      newData = event_espnow2;
+      return;
+    }
+    newData = event_espnowg;
   }
-  if (memcmp(&incMAC, &ESPNOW2, 6) == 0)
-  {
-    newData = event_espnow2;
-    return;
-  }
-  newData = event_espnowg;
 }
 
 void begin_espnow()
@@ -214,7 +225,6 @@ void add_espnow_peer()
 // Sends SystemPacket via ESP-NOW
 esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) {
   esp_err_t sendResult;
-  
   if (dest != nullptr && !esp_now_is_peer_exist(dest))
   {
 #ifdef ESP8266
@@ -263,15 +273,17 @@ esp_err_t pingback_espnow()
 esp_err_t sendTimeESPNow() {
   
   esp_err_t result1 = ESP_OK, result2 = ESP_OK, result3 = ESP_OK;
-  DBG("Sending time via ESP-NOW");
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
 
-  if(ESPNOW1 != timeMasterEspNow) {
+  if((ESPNOW1[5] != timeMaster) && ESPNOW1[5] != 0x00) {
+    DBG("Sending time to ESP-NOW Peer 1");
     result1 = sendESPNow(ESPNOW1, &sys_packet);
   }
-  if(ESPNOW2 != timeMasterEspNow) {
+  if((ESPNOW2[5] != timeMaster) && ESPNOW2[5] != 0x00) {
+    DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
+  DBG("Sending time to ESP-NOW registered peers");
   result3 = sendESPNow(nullptr, &sys_packet);
 
   if(result1 != ESP_OK || result2 != ESP_OK || result3 != ESP_OK){
@@ -396,13 +408,6 @@ esp_err_t sendESPNow(uint8_t address) {
   return result;
 }
 
-
-void recvTimeEspNow() {
-  memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
-  setTime(theCmd.param); 
-  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
-}
-
 // FDRS node pings gateway and listens for a defined amount of time for a reply
 // Blocking function for timeout amount of time (up to timeout time waiting for reply)(IE no callback)
 // Returns the amount of time in ms that the ping takes or predefined value if ping fails within timeout
@@ -412,11 +417,11 @@ uint32_t pingFDRSEspNow(uint8_t *address, uint32_t timeout) {
     esp_now_send(address, (uint8_t *)&sys_packet, sizeof(SystemPacket));
     DBG(" ESP-NOW ping sent.");
     uint32_t ping_start = millis();
-    pingFlag = false;
+    pingFlagEspNow = false;
     while ((millis() - ping_start) <= timeout)
     {
         yield(); // do I need to yield or does it automatically?
-        if (pingFlag)
+        if (pingFlagEspNow)
         {
             DBG("ESP-NOW Ping Reply in " + String(millis() - ping_start) + "ms from 0x" + String(address[5], HEX));
             return (millis() - ping_start);

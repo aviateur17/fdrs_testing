@@ -1,4 +1,3 @@
-#ifdef USE_WIFI
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
@@ -41,8 +40,11 @@
 #define FDRS_MQTT_AUTH
 #endif // MQTT_AUTH
 
+#define MQTT_MAX_BUFF_SIZE 1024
+
 WiFiClient espClient;
 PubSubClient client(espClient);
+unsigned long lastMqttConnectAttempt = 0;
 
 const char *mqtt_server = FDRS_MQTT_ADDR;
 const int mqtt_port = FDRS_MQTT_PORT;
@@ -63,7 +65,7 @@ void reconnect_mqtt(short int attempts, bool silent)
     for (short int i = 1; i <= attempts; i++)
     {
         // Attempt to connect
-        if (client.connect("FDRS_GATEWAY1", mqtt_user, mqtt_pass))
+        if (client.connect("FDRS_GATEWAY_540b40", mqtt_user, mqtt_pass))
         {
             // Subscribe
             client.subscribe(TOPIC_COMMAND);
@@ -100,7 +102,10 @@ void handleMQTT()
 {
     if (!client.connected())
     {
-        reconnect_mqtt(1, true);
+        if(millis() - lastMqttConnectAttempt > 5000) {
+            reconnect_mqtt(1, true);
+            lastMqttConnectAttempt = millis();
+        }
     }
     client.loop(); // for recieving incoming messages and maintaining connection
 }
@@ -140,6 +145,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
 void begin_mqtt()
 {
     client.setServer(mqtt_server, mqtt_port);
+    client.setBufferSize(MQTT_MAX_BUFF_SIZE);
     if (!client.connected())
     {
         reconnect_mqtt(5);
@@ -152,7 +158,7 @@ void mqtt_publish(const char *payload)
     if (!client.publish(TOPIC_DATA, payload))
     {
         DBG(" Error on sending MQTT");
-#if defined(USE_SD_LOG) || defined(USE_FS_LOG)    
+#if defined(USE_SD_LOG) || defined(USE_FS_LOG)
         sendLog();
 #endif
     }
@@ -168,11 +174,9 @@ void mqtt_publish(const char *payload)
 #endif
     }
 }
-#endif // USE_WIFI
 
 void sendMQTT()
 {
-#ifdef USE_WIFI
     DBG("Sending MQTT.");
     DynamicJsonDocument doc(24576);
     for (int i = 0; i < ln; i++)
@@ -182,8 +186,7 @@ void sendMQTT()
         doc[i]["data"] = theData[i].d;
         doc[i]["time"] = time(nullptr);
     }
-    String outgoingString;
-    serializeJson(doc, outgoingString);
-    mqtt_publish((char *)outgoingString.c_str());
-#endif // USE_WIFI
+    char mqtt_payload[measureJson(doc) + 1];
+    serializeJson(doc, mqtt_payload, sizeof(mqtt_payload));
+    mqtt_publish(mqtt_payload);
 }
