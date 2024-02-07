@@ -42,7 +42,9 @@
 #define LORA_SPI_MISO RADIOLIB_NC
 #define LORA_SPI_MOSI RADIOLIB_NC
 
-#define FDRS_DEBUG     // Enable USB-Serial debugging
+// #define FDRS_DEBUG     // Enable USB-Serial debugging
+#define FDRS_DEBUG_FINE
+// #define FDRS_DEBUG_FINEST
 // #define DEBUG_CONFIG
 
 // I2C - OLED or RTC

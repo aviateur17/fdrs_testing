@@ -260,6 +260,8 @@ void sendTime() {
   // Only send via Serial interface if WiFi is enabled to prevent loops
 #if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
     sendTimeSerial();
+    timeMaster = 0xff;
+    timeMasterLastMsg = millis();
 #endif          // do not remove this line
     sendTimeLoRa();
     sendTimeESPNow();
