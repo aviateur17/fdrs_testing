@@ -30,14 +30,10 @@ time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
 void recvTimeEspNow(uint32_t t) {
-  // Why are we being called twice when the sender only sends one message????????? 2/6/2024 JL
-  if(millis() - lastRecvTimeEspNow > 60000) {
-    lastRecvTimeEspNow = millis();
-    DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
-    memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
-    DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
-    setTime(t); 
-  }
+  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
+  memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
+  DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
+  setTime(t); 
 }
 
 // Set ESP-NOW send and receive callbacks for either ESP8266 or ESP32
@@ -57,26 +53,9 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
   memcpy(&incMAC, mac, sizeof(incMAC));
   if (len < sizeof(DataReading))
   {
-    // SystemPacket sp;
     DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
-    memcpy(&incMAC, mac, sizeof(incMAC));
-    // processing is handled in the handlecommands function in gateway.h
-
-    // switch (sp.cmd)
-    //     {
-    //     case cmd_ping:
-    //         pingFlagEspNow = true;
-    //         break;
-    //     case cmd_time:
-    //         printf("%lu | %x\n",millis(), sp.cmd);
-    //         printf("%lu | %x\n",millis(), sp.param);
-    //         recvTimeEspNow(sp.param);    
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    // return;
+    // processing is handled in the handlecommands() function in gateway.h - do not process here
   }
   else {
     memcpy(&theData, incomingData, sizeof(theData));
@@ -235,8 +214,6 @@ void add_espnow_peer()
 // Sends SystemPacket via ESP-NOW
 esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) {
   esp_err_t sendResult;
-  
-  printf("%lu | sendESPNow func data: %lu\n",millis(), data->param);
 
   if (dest != nullptr && !esp_now_is_peer_exist(dest))
   {
@@ -286,10 +263,7 @@ esp_err_t pingback_espnow()
 esp_err_t sendTimeESPNow() {
   
   esp_err_t result1 = ESP_OK, result2 = ESP_OK, result3 = ESP_OK;
-  // DBG("Sending time via ESP-NOW");
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
-
-  // DBG(now);
 
   if((ESPNOW1 != timeMasterEspNow) && ESPNOW1[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 1");
@@ -299,8 +273,8 @@ esp_err_t sendTimeESPNow() {
     DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
-  // DBG("Sending time to ESP-NOW registered peers");
-  // result3 = sendESPNow(nullptr, &sys_packet);
+  DBG("Sending time to ESP-NOW registered peers");
+  result3 = sendESPNow(nullptr, &sys_packet);
 
   if(result1 != ESP_OK || result2 != ESP_OK || result3 != ESP_OK){
     return ESP_FAIL;
