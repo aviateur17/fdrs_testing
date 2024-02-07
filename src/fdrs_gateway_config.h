@@ -21,10 +21,10 @@
 #define ESPNOWG_ACT    
 #define LORAG_ACT      
 #define SERIAL_ACT     sendMQTT();
-#define MQTT_ACT       sendSerial();
+#define MQTT_ACT        sendSerial();      
 #define INTERNAL_ACT   sendMQTT();
-#define ESPNOW1_ACT    
-#define ESPNOW2_ACT                    
+#define ESPNOW1_ACT   
+#define ESPNOW2_ACT 
 #define LORA1_ACT      
 #define LORA2_ACT 
 
@@ -91,13 +91,7 @@
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server, 0 = only on startup
 #define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices, 0 = only send when time is updated and not periodically
-
-// RTC - I2C
-#define USE_RTC_DS3231
-#define RTC_ADDR 0x57
-// #define USE_RTC_DS1307
-// #define RTC_ADDR 0x68
+#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging

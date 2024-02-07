@@ -40,6 +40,8 @@ double dstOffset = (FDRS_DST_OFFSET * 60 * 60); // -1 hour for DST offset from s
 time_t lastUpdate = 0;
 time_t lastTimeSend = 0;
 time_t lastDstCheck = 0;
+uint8_t timeMaster = 0x00;
+unsigned long timeMasterLastMsg = 0;
 
 
 void sendTimeLoRa();
@@ -254,7 +256,7 @@ void checkDST() {
 // Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
 void sendTime() {
   if(validTime()) { // Only send time if it is valid
-  DBG("Sending out time");
+    DBG("Sending out time");
   // Only send via Serial interface if WiFi is enabled to prevent loops
 #if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
     sendTimeSerial();
@@ -267,7 +269,7 @@ void sendTime() {
 bool setTime(time_t currentTime) {
   slewSecs = 0;
   time_t previousTime = now;
-
+  
   if(currentTime != 0) {
     now = currentTime;
     slewSecs = now - previousTime;
@@ -321,6 +323,10 @@ void updateTime() {
   if(validTimeFlag && (TIME_SEND_INTERVAL != 0) && (millis() - lastTimeSend) > (1000 * 60 * TIME_SEND_INTERVAL)) {
     lastTimeSend = millis();
     sendTime();
+  }
+  if(millis() - timeMasterLastMsg > (1000*60*60)) { // Reset time master to default if not heard anything for one hour
+    timeMaster = 0x00;
+    timeMasterLastMsg = millis();
   }
 }
 

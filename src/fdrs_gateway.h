@@ -202,7 +202,7 @@ void handleCommands()
 
   case cmd_time:
 #ifdef USE_ESPNOW
-    recvTimeEspNow();
+    recvTimeEspNow(theCmd.param);
 #endif // USE_ESPNOW
 
     break;

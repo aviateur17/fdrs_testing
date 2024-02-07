@@ -20,27 +20,30 @@ const uint8_t broadcast_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const uint8_t mac_prefix[] = {MAC_PREFIX};
 uint8_t selfAddress[] = {MAC_PREFIX, UNIT_MAC};
 uint8_t incMAC[6];
-uint8_t timeMasterEspNow[6];
 
 uint8_t ESPNOW1[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_1};
 uint8_t ESPNOW2[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_2};
 extern time_t now;
-extern bool timeMasterSerial;
-time_t lastRecvTimeEspNow;
+extern uint8_t timeMaster;
+extern unsigned long timeMasterLastMsg;
+// time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
-void recvTimeEspNow() {
-  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
-  if(timeMasterSerial) {
-    DBG("Ignoring incoming time. Serial interface is time master."); 
-    return;
+void recvTimeEspNow(uint32_t t) {
+  // Process time if there is no master set yet
+  if(timeMaster == 0x00 || timeMaster == incMAC[5]) {
+    DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
+    if(timeMaster == 0x00) {
+      timeMaster = incMAC[5];
+      DBG("ESP-NOW time master is 0x" + String(incMAC[5], HEX));
+    }
+    setTime(t);
+    timeMasterLastMsg = millis();
   }
-  memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
-  DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
-  if(millis() - lastRecvTimeEspNow > 60000) {
-    lastRecvTimeEspNow = millis();
-    setTime(theCmd.param); 
+  else {
+    DBG("ESP-NOW 0x" + String(incMAC[5], HEX) + " is not time master, discarding request");
   }
+  return;
 }
 
 // Set ESP-NOW send and receive callbacks for either ESP8266 or ESP32
@@ -62,32 +65,24 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
   {
     DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
-    memcpy(&incMAC, mac, sizeof(incMAC));
-    switch (theCmd.cmd)
-        {
-        case cmd_ping:
-            pingFlagEspNow = true;
-            break;
-        case cmd_time:
-            recvTimeEspNow();    
-            break;
-        }
-    return;
+    // processing is handled in the handlecommands() function in gateway.h - do not process here
   }
-  memcpy(&theData, incomingData, sizeof(theData));
-  DBG("Incoming ESP-NOW Data Reading from 0x" + String(incMAC[5], HEX));
-  ln = len / sizeof(DataReading);
-  if (memcmp(&incMAC, &ESPNOW1, 6) == 0)
-  {
-    newData = event_espnow1;
-    return;
+  else {
+    memcpy(&theData, incomingData, sizeof(theData));
+    DBG("Incoming ESP-NOW Data Reading from 0x" + String(incMAC[5], HEX));
+    ln = len / sizeof(DataReading);
+    if (memcmp(&incMAC, &ESPNOW1, 6) == 0)
+    {
+      newData = event_espnow1;
+      return;
+    }
+    if (memcmp(&incMAC, &ESPNOW2, 6) == 0)
+    {
+      newData = event_espnow2;
+      return;
+    }
+    newData = event_espnowg;
   }
-  if (memcmp(&incMAC, &ESPNOW2, 6) == 0)
-  {
-    newData = event_espnow2;
-    return;
-  }
-  newData = event_espnowg;
 }
 
 void begin_espnow()
@@ -229,7 +224,7 @@ void add_espnow_peer()
 // Sends SystemPacket via ESP-NOW
 esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) {
   esp_err_t sendResult;
-  
+
   if (dest != nullptr && !esp_now_is_peer_exist(dest))
   {
 #ifdef ESP8266
@@ -278,19 +273,18 @@ esp_err_t pingback_espnow()
 esp_err_t sendTimeESPNow() {
   
   esp_err_t result1 = ESP_OK, result2 = ESP_OK, result3 = ESP_OK;
-  DBG("Sending time via ESP-NOW");
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
 
-  if((ESPNOW1 != timeMasterEspNow) && ESPNOW1[5] != 0x00) {
+  if((ESPNOW1[5] != timeMaster) && ESPNOW1[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 1");
     result1 = sendESPNow(ESPNOW1, &sys_packet);
   }
-  if((ESPNOW2 != timeMasterEspNow) && ESPNOW2[5] != 0x00) {
+  if((ESPNOW2[5] != timeMaster) && ESPNOW2[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
-  // DBG("Sending time to ESP-NOW registered peers");
-  // result3 = sendESPNow(nullptr, &sys_packet);
+  DBG("Sending time to ESP-NOW registered peers");
+  result3 = sendESPNow(nullptr, &sys_packet);
 
   if(result1 != ESP_OK || result2 != ESP_OK || result3 != ESP_OK){
     return ESP_FAIL;
