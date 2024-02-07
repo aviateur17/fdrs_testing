@@ -7,7 +7,8 @@
 #endif
 
 extern time_t now;
-bool timeMasterSerial = false;   // Denotes that the time master is sending time via serial interface - don't accept time from other interfaces.
+extern uint8_t timeMaster;
+extern unsigned long timeMasterLastMsg;
 
 void getSerial() {
   String incomingString;
@@ -41,9 +42,14 @@ void getSerial() {
     else if(obj.containsKey("cmd")) { // SystemPacket
       cmd_t c = doc[0]["cmd"];
       if(c == cmd_time) {
-        timeMasterSerial = true;
+        // Serial time master takes precedence over all others
+        if(timeMaster != 0xff) {
+          timeMaster = 0xff;
+          DBG("Time master is now Serial peer");
+        }
         setTime(doc[0]["param"]); 
         DBG("Incoming Serial: time");
+        timeMasterLastMsg = millis();
       }
       else {
         DBG("Incoming Serial: unknown cmd: " + String(c));

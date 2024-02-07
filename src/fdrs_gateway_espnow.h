@@ -20,20 +20,30 @@ const uint8_t broadcast_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const uint8_t mac_prefix[] = {MAC_PREFIX};
 uint8_t selfAddress[] = {MAC_PREFIX, UNIT_MAC};
 uint8_t incMAC[6];
-uint8_t timeMasterEspNow[6];
 
 uint8_t ESPNOW1[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_1};
 uint8_t ESPNOW2[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_2};
 extern time_t now;
-extern bool timeMasterSerial;
-time_t lastRecvTimeEspNow;
+extern uint8_t timeMaster;
+extern unsigned long timeMasterLastMsg;
+// time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
 void recvTimeEspNow(uint32_t t) {
-  DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
-  memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
-  DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
-  setTime(t); 
+  // Process time if there is no master set yet
+  if(timeMaster == 0x00 || timeMaster == incMAC[5]) {
+    DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
+    if(timeMaster == 0x00) {
+      timeMaster = incMAC[5];
+      DBG("ESP-NOW time master is 0x" + String(incMAC[5], HEX));
+    }
+    setTime(t);
+    timeMasterLastMsg = millis();
+  }
+  else {
+    DBG("ESP-NOW 0x" + String(incMAC[5], HEX) + " is not time master, discarding request");
+  }
+  return;
 }
 
 // Set ESP-NOW send and receive callbacks for either ESP8266 or ESP32
@@ -265,11 +275,11 @@ esp_err_t sendTimeESPNow() {
   esp_err_t result1 = ESP_OK, result2 = ESP_OK, result3 = ESP_OK;
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
 
-  if((ESPNOW1 != timeMasterEspNow) && ESPNOW1[5] != 0x00) {
+  if((ESPNOW1[5] != timeMaster) && ESPNOW1[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 1");
     result1 = sendESPNow(ESPNOW1, &sys_packet);
   }
-  if((ESPNOW2 != timeMasterEspNow) && ESPNOW2[5] != 0x00) {
+  if((ESPNOW2[5] != timeMaster) && ESPNOW2[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
