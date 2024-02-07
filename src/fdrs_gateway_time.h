@@ -267,9 +267,7 @@ void sendTime() {
 bool setTime(time_t currentTime) {
   slewSecs = 0;
   time_t previousTime = now;
-  // ***debug - remove
-  printf("DBG  In setTime, currentTime parameter %lu.  DBG \n", currentTime);
-  // *****debug - remove*****
+  
   if(currentTime != 0) {
     now = currentTime;
     slewSecs = now - previousTime;
