@@ -29,16 +29,14 @@ extern bool timeMasterSerial;
 time_t lastRecvTimeEspNow;
 bool pingFlagEspNow = false;
 
-SystemPacket test;
-
-void recvTimeEspNow() {
+void recvTimeEspNow(uint32_t t) {
   // Why are we being called twice when the sender only sends one message????????? 2/6/2024 JL
   if(millis() - lastRecvTimeEspNow > 60000) {
+    lastRecvTimeEspNow = millis();
     DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
     memcpy(timeMasterEspNow, incMAC, sizeof(timeMasterEspNow));
     DBG("ESP-NOW time master is 0x" + String(timeMasterEspNow[5], HEX));
-    lastRecvTimeEspNow = millis();
-    setTime(theCmd.param); 
+    setTime(t); 
   }
 }
 
@@ -59,40 +57,43 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
   memcpy(&incMAC, mac, sizeof(incMAC));
   if (len < sizeof(DataReading))
   {
+    // SystemPacket sp;
     DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
     memcpy(&incMAC, mac, sizeof(incMAC));
-    // test.cmd = theCmd.cmd;
-    // test.param = theCmd.param;
-    switch (theCmd.cmd)
-        {
-        case cmd_ping:
-            pingFlagEspNow = true;
-            break;
-        case cmd_time:
-            printf("%lu | %x\n",millis(), theCmd.cmd);
-            printf("%lu | %x\n",millis(), theCmd.param);
-            recvTimeEspNow();    
-            break;
-        default:
-            break;
-        }
-    return;
+    // processing is handled in the handlecommands function in gateway.h
+
+    // switch (sp.cmd)
+    //     {
+    //     case cmd_ping:
+    //         pingFlagEspNow = true;
+    //         break;
+    //     case cmd_time:
+    //         printf("%lu | %x\n",millis(), sp.cmd);
+    //         printf("%lu | %x\n",millis(), sp.param);
+    //         recvTimeEspNow(sp.param);    
+    //         break;
+    //     default:
+    //         break;
+    //     }
+    // return;
   }
-  memcpy(&theData, incomingData, sizeof(theData));
-  DBG("Incoming ESP-NOW Data Reading from 0x" + String(incMAC[5], HEX));
-  ln = len / sizeof(DataReading);
-  if (memcmp(&incMAC, &ESPNOW1, 6) == 0)
-  {
-    newData = event_espnow1;
-    return;
+  else {
+    memcpy(&theData, incomingData, sizeof(theData));
+    DBG("Incoming ESP-NOW Data Reading from 0x" + String(incMAC[5], HEX));
+    ln = len / sizeof(DataReading);
+    if (memcmp(&incMAC, &ESPNOW1, 6) == 0)
+    {
+      newData = event_espnow1;
+      return;
+    }
+    if (memcmp(&incMAC, &ESPNOW2, 6) == 0)
+    {
+      newData = event_espnow2;
+      return;
+    }
+    newData = event_espnowg;
   }
-  if (memcmp(&incMAC, &ESPNOW2, 6) == 0)
-  {
-    newData = event_espnow2;
-    return;
-  }
-  newData = event_espnowg;
 }
 
 void begin_espnow()
@@ -285,10 +286,10 @@ esp_err_t pingback_espnow()
 esp_err_t sendTimeESPNow() {
   
   esp_err_t result1 = ESP_OK, result2 = ESP_OK, result3 = ESP_OK;
-  DBG("Sending time via ESP-NOW");
+  // DBG("Sending time via ESP-NOW");
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
 
-  DBG(now);
+  // DBG(now);
 
   if((ESPNOW1 != timeMasterEspNow) && ESPNOW1[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 1");
@@ -298,8 +299,8 @@ esp_err_t sendTimeESPNow() {
     DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
-  DBG("Sending time to ESP-NOW registered peers");
-  result3 = sendESPNow(nullptr, &sys_packet);
+  // DBG("Sending time to ESP-NOW registered peers");
+  // result3 = sendESPNow(nullptr, &sys_packet);
 
   if(result1 != ESP_OK || result2 != ESP_OK || result3 != ESP_OK){
     return ESP_FAIL;
