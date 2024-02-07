@@ -32,7 +32,7 @@ void loop() {
     // }
 
     // Testing time sending - why are recipiient reciving time twice on ESPNOW???
-    if(millis() - lastRunTime > (MS2SEC*5)) {
+    if(millis() - lastRunTime > (MS2SEC*20)) {
         lastRunTime = millis();
         sendTime();
     }
