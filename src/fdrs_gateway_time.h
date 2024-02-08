@@ -67,7 +67,7 @@ void begin_rtc() {
         //    1) first time you ran and the device wasn't running yet
         //    2) the battery on the device is low or even missing
 
-        Serial.println("RTC error: Date and Time not valid! Err: " + String(err));
+        DBGF("RTC error: Date and Time not valid! Err: " + String(err));
         validRtcFlag = false;
     }
   }

@@ -58,6 +58,11 @@
 #define OLED_PAGE_SECS 30
 #define OLED_RST -1
 
+// I2C - OLED or rtc
+// #define USE_I2C
+// #define I2C_SDA GPIO_NUM_5
+// #define I2C_SCL GPIO_NUM_6
+
 // UART data interface pins (if available)
 #define RXD2 16
 #define TXD2 17
