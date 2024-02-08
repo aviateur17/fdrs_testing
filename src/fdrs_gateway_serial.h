@@ -62,15 +62,18 @@ void getSerial() {
 
 
 void sendSerial() {
-  DBG("Sending Serial.");
+  String data;
   DynamicJsonDocument doc(24576);
   for (int i = 0; i < ln; i++) {
     doc[i]["id"]   = theData[i].id;
     doc[i]["type"] = theData[i].t;
     doc[i]["data"] = theData[i].d;
   }
-  serializeJson(doc, UART_IF);
-  UART_IF.println();
+  DBG("Sending Serial.");
+  serializeJson(doc, data);
+  DBGF("Serial data: " + data);
+  // serializeJson(doc, UART_IF);
+  // UART_IF.println();
 
 #ifndef ESP8266
   serializeJson(doc, Serial);
