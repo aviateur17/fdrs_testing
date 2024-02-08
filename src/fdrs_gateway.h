@@ -42,6 +42,7 @@
 
 SystemPacket theCmd;
 DataReading theData[256];
+TimeMaster timeMaster;
 uint8_t ln;
 uint8_t newData = event_clear;
 uint8_t newCmd = cmd_clear;
@@ -214,9 +215,9 @@ void handleCommands()
 
 void loopFDRS()
 {
+  updateTime();
   handle_schedule();
   handleCommands();
-  updateTime();
 #if defined(USE_SD_LOG) || defined(USE_FS_LOG)
   handleLogger();
 #endif
@@ -224,7 +225,7 @@ void loopFDRS()
 #ifdef USE_LORA
   handleLoRa();
   // Ping LoRa time master to estimate time delay in radio link
-  if(timeMasterLoRa != 0x0000 && netTimeOffset == UINT32_MAX) {
+  if(timeMaster.tmType == TM_LORA && netTimeOffset == UINT32_MAX) {
     pingLoRaTimeMaster();
   }
 #endif
