@@ -70,14 +70,10 @@ void sendSerial() {
     doc[i]["data"] = theData[i].d;
   }
   DBG("Sending Serial.");
-  serializeJson(doc, data);
-  DBGF("Serial data: " + data);
-  // serializeJson(doc, UART_IF);
-  // UART_IF.println();
 
 #ifndef ESP8266
-  serializeJson(doc, Serial);
-  Serial.println();
+  serializeJson(doc, data);
+  DBGF("Serial data: " + data);
 #endif
 
 }
