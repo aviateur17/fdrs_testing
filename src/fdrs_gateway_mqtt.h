@@ -122,8 +122,8 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     DeserializationError error = deserializeJson(doc, incomingString);
     if (error)
     { // Test if parsing succeeds.
-        DBG("json parse err");
-        DBG(incomingString);
+        DBGFST("json parse err");
+        DBGFST(incomingString);
         return;
     }
     else
@@ -157,7 +157,7 @@ void mqtt_publish(const char *payload)
 {
     if (!client.publish(TOPIC_DATA, payload))
     {
-        DBG(" Error on sending MQTT");
+        DBGF(" Error on sending MQTT");
 #if defined(USE_SD_LOG) || defined(USE_FS_LOG)
         sendLog();
 #endif
@@ -189,4 +189,5 @@ void sendMQTT()
     char mqtt_payload[measureJson(doc) + 1];
     serializeJson(doc, mqtt_payload, sizeof(mqtt_payload));
     mqtt_publish(mqtt_payload);
+    DBGF("MQTT Data: " + String(mqtt_payload));
 }
