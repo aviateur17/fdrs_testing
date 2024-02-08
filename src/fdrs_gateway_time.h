@@ -67,7 +67,7 @@ void begin_rtc() {
         //    1) first time you ran and the device wasn't running yet
         //    2) the battery on the device is low or even missing
 
-        Serial.println("RTC error: Date and Time not valid! Err: " + String(err));
+        DBGF("RTC error: Date and Time not valid! Err: " + String(err));
         validRtcFlag = false;
     }
   }
@@ -257,8 +257,6 @@ void sendTime() {
   // Only send via Serial interface if WiFi is enabled to prevent loops
 #if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
     sendTimeSerial();
-    timeMaster = 0xff;
-    timeMasterLastMsg = millis();
 #endif          // do not remove this line
     sendTimeLoRa();
     sendTimeESPNow();

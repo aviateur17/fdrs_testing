@@ -56,9 +56,13 @@
 // #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
-// #define OLED_SDA 21
-// #define OLED_SCL 22
 #define OLED_RST -1
+
+// RTC - I2C
+#define USE_RTC_DS3231
+#define RTC_ADDR 0x57
+// #define USE_RTC_DS1307
+// #define RTC_ADDR 0x68
 
 // UART data interface pins (if available)
 #define RXD2 15
@@ -82,8 +86,8 @@
 #define MQTT_ADDR   MQTT_SERVER
 // #define MQTT_PORT   1883 // Default MQTT port is 1883
 #define MQTT_AUTH   //Enable MQTT authentication 
-// #define MQTT_USER   "iot123"
-// #define MQTT_PASS   "iot123!"
+// #define MQTT_USER   "user"
+// #define MQTT_PASS   "pass"
 
 // NTP Time settings
 #define USDST
