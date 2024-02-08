@@ -7,8 +7,6 @@
 #endif
 
 extern time_t now;
-extern uint8_t timeMaster;
-extern unsigned long timeMasterLastMsg;
 
 void getSerial() {
   String incomingString;
@@ -43,13 +41,14 @@ void getSerial() {
       cmd_t c = doc[0]["cmd"];
       if(c == cmd_time) {
         // Serial time master takes precedence over all others
-        if(timeMaster != 0xff) {
-          timeMaster = 0xff;
+        if(timeMaster.tmType == TM_NONE) {
+          timeMaster.tmType = TM_SERIAL;
+          timeMaster.tmAddress = 0x0000;
           DBG("Time master is now Serial peer");
         }
         setTime(doc[0]["param"]); 
         DBG("Incoming Serial: time");
-        timeMasterLastMsg = millis();
+        timeMaster.tmLastTimeSet = millis();
       }
       else {
         DBG("Incoming Serial: unknown cmd: " + String(c));
@@ -63,19 +62,18 @@ void getSerial() {
 
 
 void sendSerial() {
-  DBG("Sending Serial.");
+  String data;
   DynamicJsonDocument doc(24576);
   for (int i = 0; i < ln; i++) {
     doc[i]["id"]   = theData[i].id;
     doc[i]["type"] = theData[i].t;
     doc[i]["data"] = theData[i].d;
   }
-  serializeJson(doc, UART_IF);
-  UART_IF.println();
+  DBG("Sending Serial.");
 
 #ifndef ESP8266
-  serializeJson(doc, Serial);
-  Serial.println();
+  serializeJson(doc, data);
+  DBGF("Serial data: " + data);
 #endif
 
 }
