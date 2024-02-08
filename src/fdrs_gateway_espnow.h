@@ -24,21 +24,20 @@ uint8_t incMAC[6];
 uint8_t ESPNOW1[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_1};
 uint8_t ESPNOW2[] = {MAC_PREFIX, ESPNOW_NEIGHBOR_2};
 extern time_t now;
-extern uint8_t timeMaster;
-extern unsigned long timeMasterLastMsg;
-// time_t lastRecvTimeEspNow;
+// JL - pingFlagEspNow var probably to be removed
 bool pingFlagEspNow = false;
 
 void recvTimeEspNow(uint32_t t) {
-  // Process time if there is no master set yet
-  if(timeMaster == 0x00 || timeMaster == incMAC[5]) {
+  // Process time if there is no master set yet or if LoRa is the master or if we are already the time master
+  if(timeMaster.tmType == TM_NONE || timeMaster.tmType == TM_LORA || (timeMaster.tmType == TM_ESPNOW && timeMaster.tmAddress == incMAC[4] << 8 | incMAC[5])) {
     DBG("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
-    if(timeMaster == 0x00) {
-      timeMaster = incMAC[5];
+    if(timeMaster.tmAddress == 0x0000) {
+      timeMaster.tmType = TM_ESPNOW;
+      timeMaster.tmAddress = incMAC[4] << 8 & incMAC[5];
       DBG("ESP-NOW time master is 0x" + String(incMAC[5], HEX));
     }
     setTime(t);
-    timeMasterLastMsg = millis();
+    timeMaster.tmLastTimeSet = millis();
   }
   else {
     DBG("ESP-NOW 0x" + String(incMAC[5], HEX) + " is not time master, discarding request");
@@ -224,7 +223,6 @@ void add_espnow_peer()
 // Sends SystemPacket via ESP-NOW
 esp_err_t sendESPNow(uint8_t *dest, SystemPacket *data) {
   esp_err_t sendResult;
-
   if (dest != nullptr && !esp_now_is_peer_exist(dest))
   {
 #ifdef ESP8266
@@ -275,11 +273,11 @@ esp_err_t sendTimeESPNow() {
   esp_err_t result1 = ESP_OK, result2 = ESP_OK, result3 = ESP_OK;
   SystemPacket sys_packet = { .cmd = cmd_time, .param = now };
 
-  if((ESPNOW1[5] != timeMaster) && ESPNOW1[5] != 0x00) {
+  if((timeMaster.tmAddress != ESPNOW1[4] << 8 | ESPNOW1[5]) && ESPNOW1[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 1");
     result1 = sendESPNow(ESPNOW1, &sys_packet);
   }
-  if((ESPNOW2[5] != timeMaster) && ESPNOW2[5] != 0x00) {
+  if((timeMaster.tmAddress != ESPNOW2[4] << 8 | ESPNOW2[5]) && ESPNOW2[5] != 0x00) {
     DBG("Sending time to ESP-NOW Peer 2");
     result2 = sendESPNow(ESPNOW2, &sys_packet);
   }
@@ -416,6 +414,10 @@ uint32_t pingFDRSEspNow(uint8_t *address, uint32_t timeout) {
     
     esp_now_send(address, (uint8_t *)&sys_packet, sizeof(SystemPacket));
     DBG(" ESP-NOW ping sent.");
+
+
+    //  Should the code below be removed in place of pingback_espnow????
+    // pingFlagEspNow is never set to true so this wouldn't run anyways???
     uint32_t ping_start = millis();
     pingFlagEspNow = false;
     while ((millis() - ping_start) <= timeout)
@@ -429,4 +431,5 @@ uint32_t pingFDRSEspNow(uint8_t *address, uint32_t timeout) {
     }
     DBG("No ESP-NOW ping returned within " + String(timeout) + "ms.");
     return UINT32_MAX;
+    //  ?????
 }

@@ -37,13 +37,10 @@ bool isDST;                           // Keeps track of Daylight Savings Time vs
 long slewSecs = 0;                  // When time is set this is the number of seconds the time changes
 double stdOffset = (FDRS_STD_OFFSET * 60 * 60);  // UTC -> Local time, in Seconds, offset from UTC in Standard Time
 double dstOffset = (FDRS_DST_OFFSET * 60 * 60); // -1 hour for DST offset from standard time (in seconds)
-time_t lastUpdate = 0;
-time_t lastTimeSend = 0;
 time_t lastDstCheck = 0;
-uint8_t timeMaster = 0x00;
-unsigned long timeMasterLastMsg = 0;
+unsigned long lastTimeSend = 0;
 
-
+// function prototypes
 void sendTimeLoRa();
 void printTime();
 esp_err_t sendTimeESPNow();
@@ -310,6 +307,7 @@ bool setTime(time_t currentTime) {
 
 
 void updateTime() {
+  static unsigned long lastUpdate = 0;
 
   if(millis() - lastUpdate > 500) {
     time(&now);
@@ -320,13 +318,15 @@ void updateTime() {
     checkDST();
     lastUpdate = millis();
   }
+  // Send out time to other devices if we have exceeded the time send interval
   if(validTimeFlag && (TIME_SEND_INTERVAL != 0) && (millis() - lastTimeSend) > (1000 * 60 * TIME_SEND_INTERVAL)) {
     lastTimeSend = millis();
     sendTime();
   }
-  if(millis() - timeMasterLastMsg > (1000*60*60)) { // Reset time master to default if not heard anything for one hour
-    timeMaster = 0x00;
-    timeMasterLastMsg = millis();
+  if(millis() - timeMaster.tmLastTimeSet > (1000*60*60)) { // Reset time master to default if not heard anything for one hour
+    timeMaster.tmType = TM_NONE;
+    timeMaster.tmAddress = 0x0000;
+    timeMaster.tmLastTimeSet = millis();
   }
 }
 
