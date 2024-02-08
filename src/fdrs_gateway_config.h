@@ -42,7 +42,9 @@
 #define LORA_SPI_MISO 19
 #define LORA_SPI_MOSI 23
 
-#define FDRS_DEBUG     // Enable USB-Serial debugging
+// #define FDRS_DEBUG     // Enable USB-Serial debugging
+#define FDRS_DEBUG_FINE
+// #define FDRS_DEBUG_FINEST
 // #define DEBUG_CONFIG
 
 // I2C - OLED or rtc
@@ -78,8 +80,8 @@
 #define MQTT_ADDR   MQTT_SERVER
 // #define MQTT_PORT   1883 // Default MQTT port is 1883
 #define MQTT_AUTH   //Enable MQTT authentication 
-// #define MQTT_USER   "iot123"
-// #define MQTT_PASS   "iot123!"
+// #define MQTT_USER   "user"
+// #define MQTT_PASS   "pass"
 
 // NTP Time settings
 #define USDST
