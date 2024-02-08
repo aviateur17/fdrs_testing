@@ -20,8 +20,8 @@ void getSerial() {
   DynamicJsonDocument doc(24576);
   DeserializationError error = deserializeJson(doc, incomingString);
   if (error) {    // Test if parsing succeeds.
-    //    DBG("json parse err");
-    //    DBG(incomingString);
+    DBGFST("json parse err");
+    DBGFST(incomingString);
     return;
   } else {
     int s = doc.size();
@@ -33,9 +33,12 @@ void getSerial() {
       theData[i].t = doc[i]["type"];
       theData[i].d = doc[i]["data"];
       }
-    ln = s;
+      ln = s;
       newData = event_serial;
       DBG("Incoming Serial: DR");
+      String data;
+      serializeJson(doc, data);
+      DBGF("Serial data: " + data);
     }
     else if(obj.containsKey("cmd")) { // SystemPacket
       cmd_t c = doc[0]["cmd"];
@@ -44,18 +47,18 @@ void getSerial() {
         if(timeMaster.tmType == TM_NONE) {
           timeMaster.tmType = TM_SERIAL;
           timeMaster.tmAddress = 0x0000;
-          DBG("Time master is now Serial peer");
+          DBGF("Time master is now Serial peer");
         }
         setTime(doc[0]["param"]); 
         DBG("Incoming Serial: time");
         timeMaster.tmLastTimeSet = millis();
       }
       else {
-        DBG("Incoming Serial: unknown cmd: " + String(c));
+        DBGF("Incoming Serial: unknown cmd: " + String(c));
       }
     }
     else {    // Who Knows???
-      DBG("Incoming Serial: unknown: " + incomingString);
+      DBGF("Incoming Serial: unknown: " + incomingString);
     }
   }
 }
