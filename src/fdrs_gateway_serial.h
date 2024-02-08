@@ -62,7 +62,7 @@ void getSerial() {
 
 
 void sendSerial() {
-  String data;
+  
   DynamicJsonDocument doc(24576);
   for (int i = 0; i < ln; i++) {
     doc[i]["id"]   = theData[i].id;
@@ -70,8 +70,11 @@ void sendSerial() {
     doc[i]["data"] = theData[i].d;
   }
   DBG("Sending Serial.");
+  serializeJson(doc, UART_IF);
+  UART_IF.println();
 
 #ifndef ESP8266
+  String data;
   serializeJson(doc, data);
   DBGF("Serial data: " + data);
 #endif
@@ -85,12 +88,13 @@ void handleSerial(){
 }
 
 void sendTimeSerial() {
-  DBG("Sending Time via Serial.");
+  
   DynamicJsonDocument SysPacket(64);
   SysPacket[0]["cmd"]   = cmd_time;
   SysPacket[0]["param"] = now;
   serializeJson(SysPacket, UART_IF);
   UART_IF.println();
+  DBG("Sending Time via Serial.");
 
 #ifndef ESP8266
   // serializeJson(SysPacket, Serial);
