@@ -423,15 +423,16 @@ crcResult getLoRa()
       }
       if ((packetSize - 6) % sizeof(DataReading) == 0)
       { // DataReading type packet
+        DBG("Incoming LoRa DataReading.");
         if (calcCRC == packetCRC)
         {
           SystemPacket ACK = {.cmd = cmd_ack, .param = CRC_OK};
-          DBG("CRC Match, sending ACK packet to 0x" + String(sourceMAC, HEX));
+          DBGF("CRC Match, sending ACK packet to 0x" + String(sourceMAC, HEX));
           transmitLoRa(&sourceMAC, &ACK, 1); // Send ACK back to source
         }
         else if (packetCRC == crc16_update(calcCRC, 0xA1))
         { // Sender does not want ACK and CRC is valid
-          DBG("Address 0x" + String(sourceMAC, HEX) + " does not want ACK");
+          DBGF("Address 0x" + String(sourceMAC, HEX) + " does not want ACK");
         }
         else
         {
@@ -460,6 +461,7 @@ crcResult getLoRa()
       }
       else if ((packetSize - 6) % sizeof(SystemPacket) == 0)
       {
+        DBG("Incoming LoRa SystemPacket.");
         unsigned int ln = (packetSize - 6) / sizeof(SystemPacket);
         SystemPacket receiveData[ln];
         // SystemPacket data type do not require ACKs so we don't care which of the two CRC calculations are used
@@ -468,18 +470,18 @@ crcResult getLoRa()
           memcpy(receiveData, &packet[4], packetSize - 6); // Split off data portion of packet (N bytes)
           if (ln == 1 && receiveData[0].cmd == cmd_ack)
           {
-            DBG("ACK Received - CRC Match");
+            DBGF("ACK Received - CRC Match");
           }
           else if (ln == 1 && receiveData[0].cmd == cmd_ping)
           { // We have received a ping request or reply??
             if (receiveData[0].param == 1)
             { // This is a reply to our ping request
               pingFlagLoRa = true;
-              DBG("We have received a ping reply via LoRa from address 0x" + String(sourceMAC, HEX));
+              DBGF("We have received a ping reply via LoRa from address 0x" + String(sourceMAC, HEX));
             }
             else if (receiveData[0].param == 0)
             {
-              DBG("We have received a ping request from 0x" + String(sourceMAC, HEX) + ", Replying.");
+              DBGF("We have received a ping request from 0x" + String(sourceMAC, HEX) + ", Replying.");
               SystemPacket pingReply = {.cmd = cmd_ping, .param = 1};
               transmitLoRa(&sourceMAC, &pingReply, 1);
             }
@@ -490,7 +492,7 @@ crcResult getLoRa()
               if(timeMaster.tmType == TM_NONE) {
                 timeMaster.tmType = TM_LORA;
                 timeMaster.tmAddress = sourceMAC;
-                DBG("Time master is LoRa 0x" + String(sourceMAC, HEX));
+                DBGF("Time master is LoRa 0x" + String(sourceMAC, HEX));
               }
               setTime(receiveData[0].param);
               adjTimeforNetDelay(netTimeOffset);
@@ -526,7 +528,7 @@ crcResult getLoRa()
   {
     if (packetSize != 0)
     {
-      DBGF("Incoming LoRa packet of " + String(packetSize) + "bytes not processed.");
+      DBGF("Incoming LoRa packet of " + String(packetSize) + " bytes not processed.");
       //  uint8_t packet[packetSize];
       //  radio.readData((uint8_t *)&packet, packetSize);
       //  printLoraPacket(packet,sizeof(packet));
@@ -709,7 +711,7 @@ uint32_t pingFDRSLoRa(uint16_t *address, uint32_t timeout)
     SystemPacket sys_packet = {.cmd = cmd_ping, .param = 0};
 
     transmitLoRa(address, &sys_packet, 1);
-    DBG("LoRa ping sent to address: 0x" + String(*address, HEX));
+    DBGF("LoRa ping sent to address: 0x" + String(*address, HEX));
     uint32_t ping_start = millis();
     pingFlagLoRa = false;
     // JL - future: figure out how to handle this asynchronously so we are not taking up processor time
@@ -721,12 +723,12 @@ uint32_t pingFDRSLoRa(uint16_t *address, uint32_t timeout)
         #endif
         if (pingFlagLoRa)
         {   
-            DBG("LoRa Ping Returned: " + String(millis() - ping_start) + "ms.");
+            DBGF("LoRa Ping Returned: " + String(millis() - ping_start) + "ms.");
             pingFlagLoRa = false;
             return (millis() - ping_start);
         }
     }
-    DBG("No LoRa ping returned within " + String(timeout) + "ms.");
+    DBGF("No LoRa ping returned within " + String(timeout) + "ms.");
     return UINT32_MAX;
 }
 
