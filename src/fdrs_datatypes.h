@@ -48,6 +48,19 @@ enum
   event_internal
 };
 
+enum TmType {
+  TM_NONE,
+  TM_SERIAL,
+  TM_ESPNOW,
+  TM_LORA,
+};
+
+typedef struct TimeMaster {
+  TmType tmType;
+  uint16_t tmAddress;
+  unsigned long tmLastTimeSet;
+} TimeMaster;
+
 #ifndef ESP32
 typedef int esp_err_t;
 #define ESP_FAIL 0

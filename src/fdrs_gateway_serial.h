@@ -7,8 +7,6 @@
 #endif
 
 extern time_t now;
-extern uint8_t timeMaster;
-extern unsigned long timeMasterLastMsg;
 
 void getSerial() {
   String incomingString;
@@ -43,13 +41,14 @@ void getSerial() {
       cmd_t c = doc[0]["cmd"];
       if(c == cmd_time) {
         // Serial time master takes precedence over all others
-        if(timeMaster != 0xff) {
-          timeMaster = 0xff;
+        if(timeMaster.tmType == TM_NONE) {
+          timeMaster.tmType = TM_SERIAL;
+          timeMaster.tmAddress = 0x0000;
           DBG("Time master is now Serial peer");
         }
         setTime(doc[0]["param"]); 
         DBG("Incoming Serial: time");
-        timeMasterLastMsg = millis();
+        timeMaster.tmLastTimeSet = millis();
       }
       else {
         DBG("Incoming Serial: unknown cmd: " + String(c));
