@@ -30,25 +30,28 @@
 
 // LoRa Configuration
 #define RADIOLIB_MODULE SX1276
-#define LORA_SS    26
+#define LORA_SS    GPIO_NUM_26
 #define LORA_RST   RADIOLIB_NC
-#define LORA_DIO   5
+#define LORA_DIO   GPIO_NUM_5
 #define LORA_BUSY  RADIOLIB_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
-// //#define USE_SX126X
+// #define LORA_ACK        // Request LoRa acknowledgment.
+// #define USE_SX126X
 
 #define CUSTOM_SPI
-#define LORA_SPI_SCK  18
-#define LORA_SPI_MISO 19
-#define LORA_SPI_MOSI 23
+#define LORA_SPI_SCK  GPIO_NUM_18
+#define LORA_SPI_MISO GPIO_NUM_19
+#define LORA_SPI_MOSI GPIO_NUM_23
 
-#define FDRS_DEBUG     // Enable USB-Serial debugging
+// #define FDRS_DEBUG          // Enable USB-Serial debugging
+#define FDRS_DEBUG_FINE     // Finer debugging - more messages
+// #define FDRS_DEBUG_FINEST   // Finest debugging level - all messages
 // #define DEBUG_CONFIG
 
 // I2C - OLED or RTC
 #define USE_I2C
-#define I2C_SDA 21
-#define I2C_SCL 22
+#define I2C_SDA GPIO_NUM_21
+#define I2C_SCL GPIO_NUM_22
 
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
 #define USE_OLED    
@@ -57,8 +60,8 @@
 #define OLED_RST -1
 
 // UART data interface pins (if available)
-#define RXD2 16
-#define TXD2 17
+#define RXD2 GPIO_NUM_16
+#define TXD2 GPIO_NUM_17
 
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
