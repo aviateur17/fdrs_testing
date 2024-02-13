@@ -1,5 +1,8 @@
 #include <sys/time.h>
 
+#define MIN_TS 1707000000 // Time in Unit timestamp format should be greater than this number to be valid
+#define MAX_TS 3318000000 // time in Unit timestamp format should be less than this number to be valid
+
 // select Time, in minutes, between time printed configuration
 #if defined(TIME_PRINTTIME)
 #define FDRS_TIME_PRINTTIME TIME_PRINTTIME
@@ -54,7 +57,7 @@ RtcDS3231<TwoWire> rtc(Wire);
 RtcDS3231<TwoWire> rtc(Wire);
 #endif
 
-#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+#ifdef USE_RTC
 void begin_rtc() {
   DBG("Starting RTC");
   rtc.Begin();
@@ -67,7 +70,7 @@ void begin_rtc() {
         //    1) first time you ran and the device wasn't running yet
         //    2) the battery on the device is low or even missing
 
-        DBGF("RTC error: Date and Time not valid! Err: " + String(err));
+        DBG1("RTC error: Date and Time not valid! Err: " + String(err));
         validRtcFlag = false;
     }
   }
@@ -78,7 +81,7 @@ void begin_rtc() {
   if(!rtc.GetIsRunning()) {
     uint8_t err = rtc.LastError();
     if(err != 0) {
-      DBGF("RTC was not actively running, starting now. Err: " + String(err));
+      DBG1("RTC was not actively running, starting now. Err: " + String(err));
       rtc.SetIsRunning(true);
       validRtcFlag = false;
     }
@@ -86,7 +89,7 @@ void begin_rtc() {
 
   if(validRtcFlag) {
     // Set date and time on the system
-    DBGF("Using Date and Time from RTC.");
+    DBG1("Using Date and Time from RTC.");
     setTime(rtc.GetDateTime().Unix32Time());
     printTime();
   }
@@ -99,9 +102,9 @@ void begin_rtc() {
 #endif // USE_RTC_DS3231 || USE_RTC_DS1307
 
 bool validTime() {
-  if(now < 1672000000 || (millis() - lastNTPFetchSuccess > (24*60*60*1000))) {
+  if(now < MIN_TS || now > MAX_TS || (millis() - lastNTPFetchSuccess > (24*60*60*1000))) {
     if(validTimeFlag) {
-      DBGF("Time no longer reliable.");
+      DBG1("Time no longer reliable.");
       validTimeFlag = false;
     }
     return false;
@@ -186,7 +189,7 @@ void checkDST() {
       dstEnd.tm_mday = dstEnd.tm_mday + ((7 - dstEnd.tm_wday) % 7);
       // mktime(&dstEnd); // recalculate tm_dow
       // strftime(buf, sizeof(buf), "%c", &dstEnd);
-      // DBGFST("DST Ends: " + String(buf)  + " local");
+      // DBG2("DST Ends: " + String(buf)  + " local");
       time_t tdstEnd = mktime(&dstEnd);
       if(tdstEnd != -1 && (time(NULL) - tdstEnd >= 0) && isDST == true) { // DST -> STD
         dstFlag = 0;
@@ -214,7 +217,7 @@ void checkDST() {
       dstEnd.tm_mday = dstEnd.tm_mday + ((7 - dstEnd.tm_wday) % 7);
       // mktime(&dstEnd); // recalculate tm_dow
       // strftime(buf, sizeof(buf), "%c", &dstEnd);
-      // DBGFST("DST Ends: " + String(buf)  + " local");
+      // DBG2("DST Ends: " + String(buf)  + " local");
       time_t tdstEnd = mktime(&dstEnd) - dstOffset;
       if(tdstEnd != -1 && (time(NULL) - tdstEnd >= 0) && isDST == true) { // DST -> STD
         dstFlag = 0;
@@ -237,14 +240,14 @@ void checkDST() {
     }
     if(dstFlag == 1) {
       isDST = true;
-      DBGF("Time change from STD -> DST");
+      DBG1("Time change from STD -> DST");
     }
     else if(dstFlag == 0) {
       isDST = false;
       // Since we are potentially moving back an hour we need to prevent flip flopping back and forth
       // 2AM -> 1AM, wait 70 minutes -> 2:10AM then start DST checks again.
       lastDstCheck += ((65-timeinfo.tm_min) * 60); // skip checks until after beginning of next hour
-      DBGF("Time change from DST -> STD");
+      DBG1("Time change from DST -> STD");
     }
   }
   return;
@@ -253,7 +256,7 @@ void checkDST() {
 // Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
 void sendTime() {
   if(validTime()) { // Only send time if it is valid
-    DBGF("Sending out time");
+    DBG1("Sending out time");
   // Only send via Serial interface if WiFi is enabled to prevent loops
 #if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
     sendTimeSerial();
@@ -263,14 +266,18 @@ void sendTime() {
   }
 }
 
+// time parameter is in Unix Time format UTC time zone
 bool setTime(time_t currentTime) {
   slewSecs = 0;
   time_t previousTime = now;
   
+  if(currentTime < MIN_TS && currentTime > MAX_TS) {
+    return false;
+  }
   if(currentTime != 0) {
     now = currentTime;
     slewSecs = now - previousTime;
-    DBGF("Time adjust " + String(slewSecs) + " secs");
+    DBG1("Time adjust " + String(slewSecs) + " secs");
   }
 
   // time(&now);
@@ -282,7 +289,7 @@ bool setTime(time_t currentTime) {
 #if defined(ESP32) || defined(ESP8266) // settimeofday may only work with Espressif chips
   settimeofday(&tv,NULL); // set the RTC time
 #endif
-#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+#ifdef USE_RTC
   RtcDateTime rtcNow;
   rtcNow.InitWithUnix32Time(now);
   rtc.SetDateTime(rtcNow);
@@ -292,7 +299,7 @@ bool setTime(time_t currentTime) {
   // loadFDRS(slewSecs, TIME_T, 111);
   // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
-    lastNTPFetchSuccess = millis();
+    lastNTPFetchSuccess = millis(); // Why?
     if(TIME_SEND_INTERVAL == 0 && ((millis() - lastTimeSend > 5000) || lastTimeSend == 0)) { // avoid sending twice on start with RTC and WiFi
       lastTimeSend = millis();
       sendTime();
@@ -337,6 +344,6 @@ void adjTimeforNetDelay(time_t newOffset) {
   if(newOffset < UINT32_MAX && validTimeFlag) {
     now = now + newOffset - previousOffset;
     previousOffset = newOffset;
-    DBGF("Time adj by " + String(newOffset) + " secs");
+    DBG1("Time adj by " + String(newOffset) + " secs");
   }
 }

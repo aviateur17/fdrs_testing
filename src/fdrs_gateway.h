@@ -144,10 +144,13 @@ void beginFDRS()
   Serial.begin(115200);
   UART_IF.begin(115200, SERIAL_8N1, RXD2, TXD2);
 #endif
+#ifdef USE_GPS
+  begin_gps();
+#endif
 #ifdef USE_I2C
   Wire.begin(I2C_SDA, I2C_SCL);
 #endif
-#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+#ifdef USE_RTC
   begin_rtc();
 #endif
 #ifdef USE_OLED

@@ -3,28 +3,28 @@
 //  GATEWAY CONFIGURATION
 
 //Addresses
-#define UNIT_MAC           0x20  // The address of this gateway
+#define UNIT_MAC           0x21  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0x00  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_1  0x22  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x00  // Address of ESP-NOW neighbor #2
 #define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
 // Interfaces
-// #define USE_ESPNOW  
+#define USE_ESPNOW  
 // #define USE_LORA
-#define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
+// #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
 // Actions
 // Options: sendESPNowNbr(1 or 2); sendESPNowPeers(); sendLoRaNbr(1 or 2); broadcastLoRa(); sendSerial(); sendMQTT();
-#define ESPNOWG_ACT    
+#define ESPNOWG_ACT    sendSerial();
 #define LORAG_ACT      
-#define SERIAL_ACT     sendMQTT();
-#define MQTT_ACT        sendSerial();      
-#define INTERNAL_ACT   sendMQTT();
-#define ESPNOW1_ACT   
-#define ESPNOW2_ACT 
+#define SERIAL_ACT     sendESPNowNbr(1); sendESPNowPeers();
+#define MQTT_ACT          
+#define INTERNAL_ACT   sendSerial();
+#define ESPNOW1_ACT    sendSerial();
+#define ESPNOW2_ACT    sendESPNowNbr(1);                
 #define LORA1_ACT      
 #define LORA2_ACT 
 
@@ -42,15 +42,13 @@
 #define LORA_SPI_MISO RADIOLIB_NC
 #define LORA_SPI_MOSI RADIOLIB_NC
 
-// #define FDRS_DEBUG     // Enable USB-Serial debugging
-#define FDRS_DEBUG_FINE
-// #define FDRS_DEBUG_FINEST
+#define FDRS_DEBUG     // Enable USB-Serial debugging
+#define DBG_LEVEL 2
 // #define DEBUG_CONFIG
 
-// I2C - OLED or RTC
-#define USE_I2C
-#define I2C_SDA 21
-#define I2C_SCL 22
+// I2C - OLED or rtc
+#define I2C_SDA GPIO_NUM_5
+#define I2C_SCL GPIO_NUM_6
 
 // OLED -- Displays console debugging messages on an SSD1306 I²C OLED
 // #define USE_OLED    
@@ -59,14 +57,20 @@
 #define OLED_RST -1
 
 // RTC - I2C
-#define USE_RTC_DS3231
-#define RTC_ADDR 0x57
+// #define USE_RTC_DS3231
+// #define RTC_ADDR 0x57
 // #define USE_RTC_DS1307
 // #define RTC_ADDR 0x68
 
+
 // UART data interface pins (if available)
-#define RXD2 15
-#define TXD2 14
+#define RXD2 16
+#define TXD2 17
+
+// GPS UART Interface
+#define USE_GPS
+#define GPS_RXD 25
+#define GPS_TXD 27
 
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
@@ -96,8 +100,8 @@
 #define STD_OFFSET      (-6)                // Local standard time offset in hours from UTC - if unsure, check https://time.is
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     15      // Time, in minutes, between fetching time from NTP server, 0 = only on startup
-#define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 1    // Time, in minutes, between sending out time to remote devices
+#define TIME_PRINTTIME    15      // Time, in minutes, between printing local time to debug
+#define TIME_SEND_INTERVAL 15    // Time, in minutes, between sending out time to remote devices
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging

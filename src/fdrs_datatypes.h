@@ -55,6 +55,14 @@ enum TmType {
   TM_LORA,
 };
 
+enum TmSource {
+  TM_NOSRC,
+  TM_MANUAL,
+  TM_NTP,
+  TM_GPS,
+  TM_RTC,
+};
+
 typedef struct TimeMaster {
   TmType tmType;
   uint16_t tmAddress;
