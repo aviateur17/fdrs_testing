@@ -1,15 +1,126 @@
 #include <ArduinoJson.h>
 
 #if defined (ESP32)
-#define UART_IF Serial1
+  #define UART_IF Serial1
+  #define GPS_IF Serial2
 #else
-#define UART_IF Serial
+  #define UART_IF Serial
+#endif
+
+#if defined(ESP32)
+#if !defined RXD2 or !defined TXD2
+    #warning Defining RXD2 and TXD2 using MCU defaults.
+    #if CONFIG_IDF_TARGET_ESP32
+        #define RXD2 14
+        #define TXD2 15
+    #elif CONFIG_IDF_TARGET_ESP32S2 or CONFIG_IDF_TARGET_ESP32S3
+        #define RXD2 18
+        #define TXD2 17
+    #elif CONFIG_IDF_TARGET_ESP32C3
+        #define RXD2 2
+        #define TXD2 3
+    #else
+        #error MCU not supported.
+    #endif
+#endif
 #endif
 
 extern time_t now;
 
+bool gpsParse(String input) {
+  String _time, _date;
+  int pos;
+  struct tm gpsDateTime;
+  static unsigned long lastGpsTimeSet = 0;
+
+  if(timeMaster.tmSource != TMS_GPS) {
+    timeMaster.tmSource = TMS_GPS;
+    timeMaster.tmAddress = 0xFFFF;
+    timeMaster.tmNetIf = TMIF_LOCAL;
+    DBG1("Time source is now local GPS.");
+  }
+
+  // Prints out all incoming GPS data
+  // DBG2("GPS incoming: " + input);
+
+  // $GNZDA $GNZDA,154230.000,11,02,2024,00,00*4F
+  // $GNRMC $GNRMC,154230.000,A,,,,,,,110224,,,A,V*19
+
+  if(input.startsWith("$GNZDA") && input.length() >= 38) {
+    // DBG2("GPS String: " + input + " Length: " + String(input.length()));
+    pos = input.indexOf(",");
+    _time = input.substring(pos + 1,pos + 7);
+    // DBG2("GPS Time: " + _time + " ($GNZDA)");
+    pos = input.indexOf(",",pos + 5);
+    _date = input.substring(pos,pos + 11);
+    _date.replace(",","");
+    // DBG2("GPS Date: " + _date + " ($GNZDA)");
+
+    // Set GPS time every 10 minutes
+    if(lastGpsTimeSet == 0 || millis() - lastGpsTimeSet > (1000*60*10)) {    
+      lastGpsTimeSet = millis();
+      pos = 0;
+      gpsDateTime.tm_hour = _time.substring(pos,pos+2).toInt();
+      pos+=2;
+      gpsDateTime.tm_min = _time.substring(pos,pos+2).toInt();
+      pos+=2;
+      gpsDateTime.tm_sec = _time.substring(pos,pos+2).toInt();
+      pos = 0;
+      gpsDateTime.tm_mday = _date.substring(pos,pos+2).toInt();
+      pos+=2;
+      gpsDateTime.tm_mon = _date.substring(pos,pos+2).toInt() - 1;
+      pos+=2;
+      gpsDateTime.tm_year = _date.substring(pos,pos+4).toInt() - 1900;
+      DBG2("GPS Date & Time: " + String(gpsDateTime.tm_mon + 1) + "/" + String(gpsDateTime.tm_mday) + "/" + String(gpsDateTime.tm_year + 1900) + " " \
+        + String(gpsDateTime.tm_hour) + ":" + String(gpsDateTime.tm_min) + ":" + String(gpsDateTime.tm_sec) + " UTC");
+      DBG1("Setting date and time via GPS: " + String(mktime(&gpsDateTime)) + " $GNZDA");
+      if(setTime(mktime(&gpsDateTime))) {
+        timeMaster.tmLastTimeSet = millis();
+        return true;
+      }
+    }
+  }
+  else if(input.startsWith("$GNRMC") && input.length() >= 38) {
+
+    // DBG2("GPS String: " + input + " Length: " + String(input.length()));
+    pos = input.indexOf(",");
+    _time = input.substring(pos + 1,pos + 7);
+    // DBG2("GPS Time: " + _time + " ($GNRMC)");
+    for(int i = 0 ; i < 8; i++) {
+      pos = input.indexOf(",",pos + 1); 
+    }
+    _date = input.substring(pos,pos + 9);
+    _date.replace(",","");
+    // DBG2("GPS Date: " + _date + " ($GNRMC)");
+    if(lastGpsTimeSet == 0 || millis() - lastGpsTimeSet > (1000*60*10)) {    
+      lastGpsTimeSet = millis();
+      pos = 0;
+      gpsDateTime.tm_hour = _time.substring(pos,pos+2).toInt();
+      pos+=2;
+      gpsDateTime.tm_min = _time.substring(pos,pos+2).toInt();
+      pos+=2;
+      gpsDateTime.tm_sec = _time.substring(pos,pos+2).toInt();
+      pos = 0;
+      gpsDateTime.tm_mday = _date.substring(pos,pos+2).toInt();
+      pos+=2;
+      gpsDateTime.tm_mon = _date.substring(pos,pos+2).toInt() - 1;
+      pos+=2;
+      gpsDateTime.tm_year = 2000 + _date.substring(pos,pos+2).toInt() - 1900;
+      DBG2("GPS Date & Time: " + String(gpsDateTime.tm_mon + 1) + "/" + String(gpsDateTime.tm_mday) + "/" + String(gpsDateTime.tm_year + 1900) + " " \
+        + String(gpsDateTime.tm_hour) + ":" + String(gpsDateTime.tm_min) + ":" + String(gpsDateTime.tm_sec) + " UTC");
+      DBG1("Setting date and time via GPS: " + String(mktime(&gpsDateTime)) + " $GNRMC");
+      if(setTime(mktime(&gpsDateTime))) {
+        timeMaster.tmLastTimeSet = millis();
+        return true;
+      }
+    }   
+  }
+  return false;
+}
+
 void getSerial() {
   String incomingString;
+  static int i;
 
   if (UART_IF.available()){
    incomingString =  UART_IF.readStringUntil('\n');
@@ -17,11 +128,27 @@ void getSerial() {
   else if (Serial.available()){
    incomingString =  Serial.readStringUntil('\n');
   }
+  if (GPS_IF.available()){
+
+   // Data is coming in every second from the GPS, let's minimize the processing power
+   // required by only parsing periodically - maybe every 60 seconds.
+   static unsigned long lastGpsParse = 0;
+   if(lastGpsParse == 0 || millis() - lastGpsParse > (1000*60)) {
+    lastGpsParse = millis();
+    for(int i=0; i < 20; i++) {
+      incomingString =  GPS_IF.readStringUntil('\n');
+      if(gpsParse(incomingString)) {
+        return;
+      }
+    }
+   }
+   return;
+  }
   DynamicJsonDocument doc(24576);
   DeserializationError error = deserializeJson(doc, incomingString);
   if (error) {    // Test if parsing succeeds.
-    DBGFST("json parse err");
-    DBGFST(incomingString);
+    DBG2("json parse err");
+    DBG2(incomingString);
     return;
   } else {
     int s = doc.size();
@@ -35,30 +162,40 @@ void getSerial() {
       }
       ln = s;
       newData = event_serial;
-      DBG("Incoming Serial: DR");
+      DBG1("Incoming Serial: DR");
       String data;
       serializeJson(doc, data);
-      DBGF("Serial data: " + data);
+      DBG1("Serial data: " + data);
     }
     else if(obj.containsKey("cmd")) { // SystemPacket
       cmd_t c = doc[0]["cmd"];
       if(c == cmd_time) {
-        // Serial time master takes precedence over all others
-        if(timeMaster.tmType == TM_NONE) {
-          timeMaster.tmType = TM_SERIAL;
-          timeMaster.tmAddress = 0x0000;
-          DBGF("Time master is now Serial peer");
+        if(timeMaster.tmNetIf < TMIF_SERIAL) {
+          timeMaster.tmNetIf = TMIF_SERIAL;
+          timeMaster.tmSource = TMS_NET;
+          timeMaster.tmAddress = 0xFFFF;
+          DBG1("Time source is now Serial peer");
         }
-        setTime(doc[0]["param"]); 
-        DBG("Incoming Serial: time");
-        timeMaster.tmLastTimeSet = millis();
+        if(timeMaster.tmNetIf == TMIF_SERIAL) {
+          DBG1("Incoming Serial: time");
+          if(setTime(doc[0]["param"])) {
+            timeMaster.tmLastTimeSet = millis();
+          }
+          else {
+            // Set time failed for some reason
+          }
+        }
+        else {
+          // There is a local time source so we do not accept serial
+          DBG2("Did not set time from incoming serial.");
+        }
       }
       else {
-        DBGF("Incoming Serial: unknown cmd: " + String(c));
+        DBG2("Incoming Serial: unknown cmd: " + String(c));
       }
     }
     else {    // Who Knows???
-      DBGF("Incoming Serial: unknown: " + incomingString);
+      DBG2("Incoming Serial: unknown: " + incomingString);
     }
   }
 }
@@ -75,16 +212,17 @@ void sendSerial() {
   DBG("Sending Serial.");
   serializeJson(doc, UART_IF);
   UART_IF.println();
-
-#ifndef ESP8266
   String data;
   serializeJson(doc, data);
-  DBGF("Serial data: " + data);
+  DBG2("Serial data: " + data);
+
+#ifndef ESP8266
+  
 #endif
 
 }
 void handleSerial(){
-  while (UART_IF.available() || Serial.available())
+  while (UART_IF.available() || Serial.available() || GPS_IF.available())
   {
     getSerial();
   }
@@ -98,9 +236,15 @@ void sendTimeSerial() {
   serializeJson(SysPacket, UART_IF);
   UART_IF.println();
   DBG("Sending Time via Serial.");
+  // String serialData;
+  // DBG2("Serial data: " + serializeJson(SysPacket, serialData));
 
 #ifndef ESP8266
   // serializeJson(SysPacket, Serial);
   // Serial.println();
 #endif
+}
+
+void begin_gps() {
+  GPS_IF.begin(9600, SERIAL_8N1, GPS_RXD, GPS_TXD);
 }

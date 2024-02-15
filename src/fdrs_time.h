@@ -1,5 +1,9 @@
 #include <sys/time.h>
 
+#define MIN_TS 1707000000 // Time in Unit timestamp format should be greater than this number to be valid
+#define MAX_TS 3318000000 // time in Unit timestamp format should be less than this number to be valid
+#define VALID_TS(_unixts) ( (_unixts > MIN_TS && _unixts < MAX_TS) ? true : false )
+
 // select Time, in minutes, between time printed configuration
 #if defined(TIME_PRINTTIME)
 #define FDRS_TIME_PRINTTIME TIME_PRINTTIME
@@ -41,7 +45,7 @@ time_t lastDstCheck = 0;
 unsigned long lastTimeSend = 0;
 
 // function prototypes
-void sendTimeLoRa();
+crcResult sendTimeLoRa();
 void printTime();
 esp_err_t sendTimeESPNow();
 bool setTime(time_t);
@@ -54,7 +58,7 @@ RtcDS3231<TwoWire> rtc(Wire);
 RtcDS3231<TwoWire> rtc(Wire);
 #endif
 
-#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+#ifdef USE_RTC
 void begin_rtc() {
   DBG("Starting RTC");
   rtc.Begin();
@@ -67,7 +71,7 @@ void begin_rtc() {
         //    1) first time you ran and the device wasn't running yet
         //    2) the battery on the device is low or even missing
 
-        DBGF("RTC error: Date and Time not valid! Err: " + String(err));
+        DBG1("RTC error: Date and Time not valid! Err: " + String(err));
         validRtcFlag = false;
     }
   }
@@ -78,17 +82,26 @@ void begin_rtc() {
   if(!rtc.GetIsRunning()) {
     uint8_t err = rtc.LastError();
     if(err != 0) {
-      DBGF("RTC was not actively running, starting now. Err: " + String(err));
+      DBG1("RTC was not actively running, starting now. Err: " + String(err));
       rtc.SetIsRunning(true);
       validRtcFlag = false;
     }
   }
 
-  if(validRtcFlag) {
+  if(validRtcFlag && timeMaster.tmSource <= TMS_RTC) {
+    if(timeMaster.tmSource < TMS_RTC) {
+      timeMaster.tmSource = TMS_RTC;
+      timeMaster.tmSource = TMIF_LOCAL;
+      timeMaster.tmAddress = 0xFFFF;
+      DBG1("Time source is now local RTC");
+    }
+
     // Set date and time on the system
-    DBGF("Using Date and Time from RTC.");
-    setTime(rtc.GetDateTime().Unix32Time());
-    printTime();
+    DBG1("Using Date and Time from RTC.");
+    if(setTime(rtc.GetDateTime().Unix32Time())) {
+      timeMaster.tmLastTimeSet = millis();
+      printTime();
+    }
   }
   
   // never assume the Rtc was last configured by you, so
@@ -96,12 +109,12 @@ void begin_rtc() {
   rtc.Enable32kHzPin(false);
   rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone); 
 }
-#endif // USE_RTC_DS3231 || USE_RTC_DS1307
+#endif // USE_RTC
 
 bool validTime() {
-  if(now < 1672000000 || (millis() - lastNTPFetchSuccess > (24*60*60*1000))) {
+  if(!VALID_TS(now) || (millis() - lastNTPFetchSuccess > (24*60*60*1000))) {
     if(validTimeFlag) {
-      DBGF("Time no longer reliable.");
+      DBG1("Time no longer reliable.");
       validTimeFlag = false;
     }
     return false;
@@ -120,10 +133,10 @@ void printTime() {
 
     // UTC Time
     // // print Unix time:
-    // //DBG("Unix time = " + String(now));
+    // //DBG2("Unix time = " + String(now));
     // localtime_r(&now, &timeinfo);
     // strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-    // DBG("The current UTC date/time is: " + String(strftime_buf));
+    // DBG2("The current UTC date/time is: " + String(strftime_buf));
 
     // Local time
     time_t local = time(NULL) + (isDST?dstOffset:stdOffset);
@@ -151,7 +164,7 @@ void checkDST() {
       dstBegin.tm_mday = dstBegin.tm_mday + ((7 - dstBegin.tm_wday) % 7);
       // mktime(&dstBegin); // recalculate tm_wday
       // strftime(buf, sizeof(buf), "%c", &dstBegin);
-      // DBG("DST Begins: " + String(buf) + " local");
+      // DBG2("DST Begins: " + String(buf) + " local");
       time_t tdstBegin = mktime(&dstBegin) - stdOffset;
 #endif // USDST
 #ifdef EUDST
@@ -163,7 +176,7 @@ void checkDST() {
       dstBegin.tm_mday = dstBegin.tm_mday + ((7 - dstBegin.tm_wday) % 7);
       // mktime(&dstBegin); // recalculate tm_wday
       // strftime(buf, sizeof(buf), "%c", &dstBegin);
-      // DBG("DST Begins: " + String(buf) + " local");
+      // DBG2("DST Begins: " + String(buf) + " local");
       time_t tdstBegin = mktime(&dstBegin);
 #endif // EUDST
       if(tdstBegin != -1 && (time(NULL) - tdstBegin >= 0) && isDST == false) { // STD -> DST
@@ -186,7 +199,7 @@ void checkDST() {
       dstEnd.tm_mday = dstEnd.tm_mday + ((7 - dstEnd.tm_wday) % 7);
       // mktime(&dstEnd); // recalculate tm_dow
       // strftime(buf, sizeof(buf), "%c", &dstEnd);
-      // DBGFST("DST Ends: " + String(buf)  + " local");
+      // DBG2("DST Ends: " + String(buf)  + " local");
       time_t tdstEnd = mktime(&dstEnd);
       if(tdstEnd != -1 && (time(NULL) - tdstEnd >= 0) && isDST == true) { // DST -> STD
         dstFlag = 0;
@@ -214,7 +227,7 @@ void checkDST() {
       dstEnd.tm_mday = dstEnd.tm_mday + ((7 - dstEnd.tm_wday) % 7);
       // mktime(&dstEnd); // recalculate tm_dow
       // strftime(buf, sizeof(buf), "%c", &dstEnd);
-      // DBGFST("DST Ends: " + String(buf)  + " local");
+      // DBG2("DST Ends: " + String(buf)  + " local");
       time_t tdstEnd = mktime(&dstEnd) - dstOffset;
       if(tdstEnd != -1 && (time(NULL) - tdstEnd >= 0) && isDST == true) { // DST -> STD
         dstFlag = 0;
@@ -237,14 +250,14 @@ void checkDST() {
     }
     if(dstFlag == 1) {
       isDST = true;
-      DBGF("Time change from STD -> DST");
+      DBG1("Time change from STD -> DST");
     }
     else if(dstFlag == 0) {
       isDST = false;
       // Since we are potentially moving back an hour we need to prevent flip flopping back and forth
       // 2AM -> 1AM, wait 70 minutes -> 2:10AM then start DST checks again.
       lastDstCheck += ((65-timeinfo.tm_min) * 60); // skip checks until after beginning of next hour
-      DBGF("Time change from DST -> STD");
+      DBG1("Time change from DST -> STD");
     }
   }
   return;
@@ -252,26 +265,25 @@ void checkDST() {
 
 // Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
 void sendTime() {
-  if(validTime()) { // Only send time if it is valid
-    DBGF("Sending out time");
-  // Only send via Serial interface if WiFi is enabled to prevent loops
-#if defined(USE_WIFI) || defined (USE_RTC_DS3231) || defined(USE_RTC_DS1307) // do not remove this line
+  if(validTime() && timeMaster.tmSource > TMS_NONE) { // Only send time if it is valid
+    DBG1("Sending out time");
     sendTimeSerial();
-#endif          // do not remove this line
     sendTimeLoRa();
     sendTimeESPNow();
   }
 }
 
+// time parameter is in Unix Time format UTC time zone
 bool setTime(time_t currentTime) {
   slewSecs = 0;
   time_t previousTime = now;
   
-  if(currentTime != 0) {
-    now = currentTime;
-    slewSecs = now - previousTime;
-    DBGF("Time adjust " + String(slewSecs) + " secs");
+  if(!VALID_TS(currentTime)) {
+    return false;
   }
+  now = currentTime;
+  slewSecs = now - previousTime;
+  DBG1("Time adjust " + String(slewSecs) + " secs");
 
   // time(&now);
   localtime_r(&now, &timeinfo); // write to timeinfo struct
@@ -282,7 +294,7 @@ bool setTime(time_t currentTime) {
 #if defined(ESP32) || defined(ESP8266) // settimeofday may only work with Espressif chips
   settimeofday(&tv,NULL); // set the RTC time
 #endif
-#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+#ifdef USE_RTC
   RtcDateTime rtcNow;
   rtcNow.InitWithUnix32Time(now);
   rtc.SetDateTime(rtcNow);
@@ -292,21 +304,15 @@ bool setTime(time_t currentTime) {
   // loadFDRS(slewSecs, TIME_T, 111);
   // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
-    lastNTPFetchSuccess = millis();
     if(TIME_SEND_INTERVAL == 0 && ((millis() - lastTimeSend > 5000) || lastTimeSend == 0)) { // avoid sending twice on start with RTC and WiFi
-      lastTimeSend = millis();
       sendTime();
     }
     return true;
   }
-  else {
-    return false;
-  }
+  return false;
 }
 
-
-
-void updateTime() {
+void handleTime() {
   static unsigned long lastUpdate = 0;
 
   if(millis() - lastUpdate > 500) {
@@ -323,20 +329,25 @@ void updateTime() {
     lastTimeSend = millis();
     sendTime();
   }
-  if(millis() - timeMaster.tmLastTimeSet > (1000*60*60)) { // Reset time master to default if not heard anything for one hour
-    timeMaster.tmType = TM_NONE;
+  if(timeMaster.tmNetIf < TMIF_LOCAL && (millis() - timeMaster.tmLastTimeSet > (1000*60*60))) { // Reset time master to default if not heard anything for one hour
+    timeMaster.tmNetIf = TMIF_NONE;
     timeMaster.tmAddress = 0x0000;
     timeMaster.tmLastTimeSet = millis();
+    timeMaster.tmSource = TMS_NONE;
   }
 }
 
 void adjTimeforNetDelay(time_t newOffset) {
   static time_t previousOffset = 0;
-  updateTime();
+
   // check to see if offset and current time are valid
   if(newOffset < UINT32_MAX && validTimeFlag) {
     now = now + newOffset - previousOffset;
     previousOffset = newOffset;
-    DBGF("Time adj by " + String(newOffset) + " secs");
+    DBG1("Time adj by " + String(newOffset) + " secs");
+  }
+  if(timeMaster.tmSource == TMS_NET && newOffset > 10) {
+    DBG("Time off by more than 10 seconds!");
+    // loadFDRS();
   }
 }
