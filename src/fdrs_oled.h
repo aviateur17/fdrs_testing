@@ -97,9 +97,9 @@ void drawPage3() {
 // after 60 seconds switch to blank page to save screen
 void drawPageOLED(bool nextpage) {
 
-    if((millis()/1000 - displayEvent) > OLED_PAGE_SECS && nextpage) {
+    if(TDIFFSEC(displayEvent,OLED_PAGE_SECS) && nextpage) {
         displayPage = (displayPage >= DISPLAY_PAGES) ? 0 : (displayPage + 1);
-        displayEvent = millis()/1000;
+        displayEvent = millis();
         display.clear();
 
         switch(displayPage) {

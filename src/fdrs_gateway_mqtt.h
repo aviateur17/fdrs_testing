@@ -102,7 +102,7 @@ void handleMQTT()
 {
     if (!client.connected())
     {
-        if(millis() - lastMqttConnectAttempt > 5000) {
+        if(TDIFF(lastMqttConnectAttempt,5000)) {
             reconnect_mqtt(1, true);
             lastMqttConnectAttempt = millis();
         }
@@ -118,7 +118,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     {
         incomingString += (char)message[i];
     }
-    StaticJsonDocument<2048> doc;
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, incomingString);
     if (error)
     { // Test if parsing succeeds.
@@ -178,7 +178,7 @@ void mqtt_publish(const char *payload)
 void sendMQTT()
 {
     DBG("Sending MQTT.");
-    DynamicJsonDocument doc(24576);
+    JsonDocument doc;
     for (int i = 0; i < ln; i++)
     {
         doc[i]["id"] = theData[i].id;

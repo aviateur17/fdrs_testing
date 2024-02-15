@@ -57,7 +57,7 @@ bool gpsParse(String input) {
     // DBG2("GPS Date: " + _date + " ($GNZDA)");
 
     // Set GPS time every 10 minutes
-    if(lastGpsTimeSet == 0 || millis() - lastGpsTimeSet > (1000*60*10)) {    
+    if(lastGpsTimeSet == 0 || TDIFFMIN(lastGpsTimeSet,10)) {    
       lastGpsTimeSet = millis();
       pos = 0;
       gpsDateTime.tm_hour = _time.substring(pos,pos+2).toInt();
@@ -92,7 +92,7 @@ bool gpsParse(String input) {
     _date = input.substring(pos,pos + 9);
     _date.replace(",","");
     // DBG2("GPS Date: " + _date + " ($GNRMC)");
-    if(lastGpsTimeSet == 0 || millis() - lastGpsTimeSet > (1000*60*10)) {    
+    if(lastGpsTimeSet == 0 || TDIFFMIN(lastGpsTimeSet,10)) {    
       lastGpsTimeSet = millis();
       pos = 0;
       gpsDateTime.tm_hour = _time.substring(pos,pos+2).toInt();
@@ -133,7 +133,7 @@ void getSerial() {
    // Data is coming in every second from the GPS, let's minimize the processing power
    // required by only parsing periodically - maybe every 60 seconds.
    static unsigned long lastGpsParse = 0;
-   if(lastGpsParse == 0 || millis() - lastGpsParse > (1000*60)) {
+   if(lastGpsParse == 0 || TDIFFSEC(lastGpsParse,60)) {
     lastGpsParse = millis();
     for(int i=0; i < 20; i++) {
       incomingString =  GPS_IF.readStringUntil('\n');
@@ -144,7 +144,7 @@ void getSerial() {
    }
    return;
   }
-  DynamicJsonDocument doc(24576);
+  JsonDocument doc;
   DeserializationError error = deserializeJson(doc, incomingString);
   if (error) {    // Test if parsing succeeds.
     DBG2("json parse err");
@@ -203,7 +203,7 @@ void getSerial() {
 
 void sendSerial() {
   
-  DynamicJsonDocument doc(24576);
+  JsonDocument doc;
   for (int i = 0; i < ln; i++) {
     doc[i]["id"]   = theData[i].id;
     doc[i]["type"] = theData[i].t;
@@ -230,7 +230,7 @@ void handleSerial(){
 
 void sendTimeSerial() {
   
-  DynamicJsonDocument SysPacket(64);
+  JsonDocument SysPacket;
   SysPacket[0]["cmd"]   = cmd_time;
   SysPacket[0]["param"] = now;
   serializeJson(SysPacket, UART_IF);
