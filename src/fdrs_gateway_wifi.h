@@ -29,14 +29,47 @@
 // ASSERT("NO WiFi password defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h");
 #endif // WIFI_PASS
 
-// select DNS IP Address configuration
-#if defined(DNS_IPADDRESS)
-#define FDRS_DNS_IPADDRESS DNS_IPADDRESS
-#elif defined(GLOBAL_DNS_IPADDRESS)
-#define FDRS_DNS_IPADDRESS GLOBAL_DNS_IPADDRESS
+
+// select Host IP Address
+#if defined(HOST_IPADDRESS)
+#define FDRS_HOST_IPADDRESS HOST_IPADDRESS
+#elif defined(GLOBAL_HOST_IPADDRESS)
+#define FDRS_HOST_IPADDRESS GLOBAL_HOST_IPADDRESS
 #else
-// ASSERT("NO DNS IP Address defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h");
-#endif // DNS_IPADDRESS
+#endif // HOST_IPADDRESS
+
+// select Gateway IP Address
+#if defined(GW_IPADDRESS)
+#define FDRS_GW_IPADDRESS GW_IPADDRESS
+#elif defined(GLOBAL_GW_IPADDRESS)
+#define FDRS_GW_IPADDRESS GLOBAL_GW_IPADDRESS
+#else
+#endif // GW_IPADDRESS
+
+// select Subnet Address
+#if defined(SUBNET_ADDRESS)
+#define FDRS_SUBNET_ADDRESS SUBNET_ADDRESS
+#elif defined(GLOBAL_SUBNET_ADDRESS)
+#define FDRS_SUBNET_ADDRESS GLOBAL_SUBNET_ADDRESS
+#else
+#endif // SUBNET_ADDRESS
+
+// select DNS1 IP Address configuration
+#if defined(DNS1_IPADDRESS)
+#define FDRS_DNS1_IPADDRESS DNS1_IPADDRESS
+#elif defined(GLOBAL_DNS1_IPADDRESS)
+#define FDRS_DNS1_IPADDRESS GLOBAL_DNS1_IPADDRESS
+#else
+// ASSERT("NO DNS1 IP Address defined! Please define in fdrs_globals.h (recommended) or in fdrs_gateway_config.h");
+#endif // DNS1_IPADDRESS
+
+// select DNS2 IP Address configuration
+#if defined(DNS2_IPADDRESS)
+#define FDRS_DNS2_IPADDRESS DNS2_IPADDRESS
+#elif defined(GLOBAL_DNS2_IPADDRESS)
+#define FDRS_DNS2_IPADDRESS GLOBAL_DNS2_IPADDRESS
+#else
+#endif // DNS2_IPADDRESS
 
 // select NTP Time Server configuration
 #if defined(TIME_SERVER)
@@ -60,6 +93,12 @@ const int NTP_PACKET_SIZE = 48;       // NTP time stamp is in the first 48 bytes
 byte packetBuffer[NTP_PACKET_SIZE];   //buffer to hold incoming and outgoing packets
 uint NTPFetchFail = 0;                // consecutive NTP fetch failures
 extern time_t now;
+
+const char *ssid = FDRS_WIFI_SSID;
+const char *password = FDRS_WIFI_PASS;
+#ifdef USE_STATIC_IPADDRESS
+  uint8_t hostIpAddress[4], gatewayAddress[4], subnetAddress[4], dns1Address[4], dns2Address[4]; 
+#endif
 
 #ifdef USE_ETHERNET
 static bool eth_connected = false;
@@ -102,9 +141,18 @@ void WiFiEvent(WiFiEvent_t event)
 }
 
 #endif // USE_ETHERNET
-const char *ssid = FDRS_WIFI_SSID;
-const char *password = FDRS_WIFI_PASS;
-IPAddress dnsAddress;
+
+// Convert IP Addresses from strings to byte arrays of 4 bytes
+void stringToByteArray(const char* str, char sep, byte* bytes, int maxBytes, int base) {
+    for (int i = 0; i < maxBytes; i++) {
+        bytes[i] = strtoul(str, NULL, base);  // Convert byte
+        str = strchr(str, sep);               // Find next separator
+        if (str == NULL || *str == '\0') {
+            break;                            // No more separators, exit
+        }
+        str++;                                // Point to next character after separator
+    }
+}
 
 void begin_wifi()
 {
@@ -118,18 +166,26 @@ void begin_wifi()
     delay(500);
   }
 #else
+#ifdef USE_STATIC_IPADDRESS
+  // Convert from String to byte array
+  stringToByteArray(FDRS_HOST_IPADDRESS, '.', hostIpAddress, 4, 10);
+  stringToByteArray(FDRS_GW_IPADDRESS, '.', gatewayAddress, 4, 10);
+  stringToByteArray(FDRS_SUBNET_ADDRESS, '.', subnetAddress, 4, 10);
+  stringToByteArray(FDRS_DNS1_IPADDRESS, '.', dns1Address, 4, 10);
+  stringToByteArray(FDRS_DNS2_IPADDRESS, '.', dns2Address, 4, 10);
+  WiFi.config(hostIpAddress, gatewayAddress, subnetAddress, dns1Address, dns2Address);
+#endif
   WiFi.begin(ssid, password);
   int connectTries = 0;
   while (WiFi.status() != WL_CONNECTED)
   {
     connectTries++;
-    DBG("Connecting to WiFi...");
-    DBG(FDRS_WIFI_SSID);
+    DBG("Connecting to WiFi SSID: " + String(FDRS_WIFI_SSID) + " try number " + String(connectTries));
     delay(1000);
     WiFi.reconnect();
     if(connectTries >= 15) {
         DBG("Restarting ESP32: WiFi issues\n");
-        vTaskDelay(5000/portTICK_PERIOD_MS);  
+        delay(5000);  
         ESP.restart();
       }
   }
@@ -161,59 +217,62 @@ void sendNTPpacket(const char * address) {
 
 void fetchNtpTime() {
   //DBG("GetTime Function");
+  if(timeMaster.tmSource <= TMS_NTP) {
 #ifdef USE_ETHERNET
-  if(eth_connected) {
-#else
-  if(WiFi.status() == WL_CONNECTED) {
+    if(eth_connected) {
+#elif defined(USE_WIFI)
+    if(WiFi.status() == WL_CONNECTED) {
 #endif
-    //DBG("Calling .begin function");
-    FDRSNtp.begin(localPort);
+      //DBG("Calling .begin function");
+      FDRSNtp.begin(localPort);
 
-    sendNTPpacket(timeServer); // send an NTP packet to a time server
-    uint i = 0;
-    for(i = 0; i < 800; i++) {
-      if(FDRSNtp.parsePacket())
-        break;
-      delay(10);
-    }
-    if(i < 800) {
-      DBG("Took " + String(i * 10) + "ms to get NTP response from " + String(timeServer) + ".");
-      NTPFetchFail = 0;
-      // We've received a packet, read the data from it
-      FDRSNtp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
+      sendNTPpacket(timeServer); // send an NTP packet to a time server
+      uint i = 0;
+      for(i = 0; i < 800; i++) {
+        if(FDRSNtp.parsePacket())
+          break;
+        delay(10);
+      }
+      if(i < 800) {
+        DBG("Took " + String(i * 10) + "ms to get NTP response from " + String(timeServer) + ".");
+        NTPFetchFail = 0;
+        // We've received a packet, read the data from it
+        FDRSNtp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
 
-      // the timestamp starts at byte 40 of the received packet and is four bytes,
-      // or two words, long. First, extract the two words:
+        // the timestamp starts at byte 40 of the received packet and is four bytes,
+        // or two words, long. First, extract the two words:
 
-      unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-      unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-      // combine the four bytes (two words) into a long integer
-      // this is NTP time (seconds since Jan 1 1900):
-      unsigned long secsSince1900 = highWord << 16 | lowWord;
-      //DBG("Seconds since Jan 1 1900 = " + String(secsSince1900));
-      
-      // now convert NTP time into everyday time:
-      // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-      const unsigned long seventyYears = 2208988800UL;
-      // subtract seventy years:
-      // now is epoch format - seconds since Jan 1 1970
-      now = secsSince1900 - seventyYears;
-      setTime(now); // UTC time
-    }
-    else {
-      NTPFetchFail++;
-      DBG("Timeout getting a NTP response. " + String(NTPFetchFail) + " consecutive failures.");
-      // If unable to Update the time after N tries then set the time to be not valid.
-      if(NTPFetchFail > 5) {
-        validTimeFlag = false;
-        DBG("Time no longer reliable.");
+        unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+        unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+        // combine the four bytes (two words) into a long integer
+        // this is NTP time (seconds since Jan 1 1900):
+        unsigned long secsSince1900 = highWord << 16 | lowWord;
+        //DBG("Seconds since Jan 1 1900 = " + String(secsSince1900));
+        
+        // now convert NTP time into everyday time:
+        // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
+        const unsigned long seventyYears = 2208988800UL;
+        // subtract seventy years:
+        // now is epoch format - seconds since Jan 1 1970
+        now = secsSince1900 - seventyYears;
+        if(setTime(now)) {
+          timeMaster.tmNetIf = TMIF_LOCAL;
+          timeMaster.tmAddress = 0xFFFF;
+          timeMaster.tmSource = TMS_NTP;
+          timeMaster.tmLastTimeSet = millis();
+          DBG1("Time source is now local NTP");
+        } // UTC time
+      }
+      else {
+        DBG1("Timeout getting a NTP response.");
       }
     }
   }
+  return;
 }
 
 void begin_ntp() {
   fetchNtpTime();
-  updateTime();
+  handleTime();
   printTime();
 }

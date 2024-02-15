@@ -42,9 +42,8 @@
 #define LORA_SPI_MISO 19
 #define LORA_SPI_MOSI 23
 
-// #define FDRS_DEBUG     // Enable USB-Serial debugging
-#define FDRS_DEBUG_FINE
-// #define FDRS_DEBUG_FINEST
+#define FDRS_DEBUG     // Enable USB-Serial debugging
+#define DBG_LEVEL 2
 // #define DEBUG_CONFIG
 
 // I2C - OLED or rtc
@@ -56,7 +55,7 @@
 #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
-#define OLED_RST -1
+#define OLED_RST GPIO_NUM_NC
 
 // I2C - OLED or rtc
 // #define USE_I2C
@@ -64,8 +63,13 @@
 // #define I2C_SCL GPIO_NUM_6
 
 // UART data interface pins (if available)
-#define RXD2 16
-#define TXD2 17
+#define RXD2 GPIO_NUM_NC
+#define TXD2 GPIO_NUM_NC
+
+// GPS UART Interface
+// #define USE_GPS
+#define GPS_RXD GPIO_NUM_NC
+#define GPS_TXD GPIO_NUM_NC
 
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
@@ -74,7 +78,7 @@
 #define WIFI_PASS   AP_PASS
 
 // Use Static IP Address for WiFi connections
-#define USE_STATIC_IPADDRESS     
+// #define USE_STATIC_IPADDRESS     
 #define HOST_IPADDRESS      HOSTIPADDRESS
 #define GW_IPADDRESS        GATEWAY
 #define SUBNET_ADDRESS      SUBNET
