@@ -129,7 +129,7 @@ int find_espnow_peer()
   }
   for (int i = 0; i < 16; i++)
   {
-    if ((millis() - peer_list[i].last_seen) >= PEER_TIMEOUT)
+    if (TDIFF(peer_list[i].last_seen,PEER_TIMEOUT))
     {
       // DBG("Recycling peer entry " + String(i));
       esp_now_del_peer(peer_list[i].mac);

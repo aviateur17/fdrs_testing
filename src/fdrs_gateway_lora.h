@@ -628,7 +628,7 @@ void pingLoRaTimeMaster() {
   static unsigned long lastTimeMasterPing = 0;
 
   // ping the time master every 10 minutes
-  if(millis() - lastTimeMasterPing > (10*60*1000 + random(0,2000))) {
+  if(TDIFFMIN(lastTimeMasterPing,10)) {
     pingFDRSLoRa(timeMaster.tmAddress,4000);
     lastTimeMasterPing = millis();
   }
@@ -686,7 +686,7 @@ crcResult handleLoRa()
     loraPing.address = 0;
     loraPing.response = __UINT32_MAX__;        
   }
-  if(loraPing.status == psWaiting && (millis() - loraPing.start > loraPing.timeout)) {
+  if(loraPing.status == psWaiting && (TDIFF(loraPing.start,loraPing.timeout))) {
     DBG1("No LoRa ping returned within " + String(loraPing.timeout) + "ms.");
     loraPing.status = psNotStarted;
     loraPing.start = 0;

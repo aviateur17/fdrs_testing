@@ -42,9 +42,8 @@
 #define LORA_SPI_MISO RADIOLIB_NC
 #define LORA_SPI_MOSI RADIOLIB_NC
 
-// #define FDRS_DEBUG     // Enable USB-Serial debugging
-#define FDRS_DEBUG_FINE
-// #define FDRS_DEBUG_FINEST
+#define FDRS_DEBUG     // Enable USB-Serial debugging
+#define DBG_LEVEL 2
 // #define DEBUG_CONFIG
 
 // I2C - OLED or RTC
@@ -67,8 +66,8 @@
 #define OLED_RST -1
 
 // RTC - I2C
-// #define USE_RTC_DS3231
-// #define RTC_ADDR 0x57
+#define USE_RTC_DS3231
+#define RTC_ADDR 0x57
 // #define USE_RTC_DS1307
 // #define RTC_ADDR 0x68
 
@@ -84,7 +83,7 @@
 #define WIFI_PASS   AP_PASS
 
 // Use Static IP Address for WiFi connections
-// #define USE_STATIC_IPADDRESS     
+#define USE_STATIC_IPADDRESS     
 #define HOST_IPADDRESS      HOSTIPADDRESS
 #define GW_IPADDRESS        GATEWAY
 #define SUBNET_ADDRESS      SUBNET
