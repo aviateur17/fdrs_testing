@@ -3,7 +3,7 @@
 // Global Configuration
 
 // Developed by Timm Bogner (timmbogner@gmail.com) in Urbana, Illinois, USA.
-
+#define GLOBAL_DBG_LEVEL 0
 
 #define GLOBAL_WIFI_SSID        "Your SSID"
 #define GLOBAL_WIFI_PASS        "Password"
@@ -37,3 +37,11 @@
 #define GLOBAL_LORA_INTERVAL 5000  // Interval between LoRa buffer releases. Must be longer than transmission time-on-air.
 
 #define MAC_PREFIX  0xAA, 0xBB, 0xCC, 0xDD, 0xEE  // MAC address prefix. Can be used to distinguish different ESP-NOW networks.
+
+#if defined(USE_OLED) || defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+    #define USE_I2C
+#endif
+
+#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+  #define USE_RTC
+#endif

@@ -18,6 +18,8 @@ void someData() {
 
 void setup() {
     beginFDRS();
+    // send some data every minute
+    scheduleFDRS(someData,1000*60);
 }
 
 void loop() {
@@ -32,7 +34,4 @@ void loop() {
     //     #endif
     //     lastRunTime = millis();
     // }
-
-    // send some data every minute
-    scheduleFDRS(someData,1000*60);
 }

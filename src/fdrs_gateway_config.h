@@ -31,9 +31,9 @@
 // LoRa Configuration
 #define RADIOLIB_MODULE SX1276
 #define LORA_SS    GPIO_NUM_26
-#define LORA_RST   RADIOLIB_NC
+#define LORA_RST   GPIO_NUM_NC
 #define LORA_DIO   GPIO_NUM_5
-#define LORA_BUSY  RADIOLIB_NC
+#define LORA_BUSY  GPIO_NUM_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
 // #define LORA_ACK        // Request LoRa acknowledgment.
 // #define USE_SX126X
@@ -43,9 +43,8 @@
 #define LORA_SPI_MISO GPIO_NUM_19
 #define LORA_SPI_MOSI GPIO_NUM_23
 
-// #define FDRS_DEBUG          // Enable USB-Serial debugging
-#define FDRS_DEBUG_FINE     // Finer debugging - more messages
-// #define FDRS_DEBUG_FINEST   // Finest debugging level - all messages
+#define FDRS_DEBUG          // Enable USB-Serial debugging
+#define DBG_LEVEL 2
 // #define DEBUG_CONFIG
 
 // I2C - OLED or RTC
@@ -57,11 +56,16 @@
 #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
-#define OLED_RST -1
+#define OLED_RST GPIO_NUM_NC
 
 // UART data interface pins (if available)
-#define RXD2 GPIO_NUM_16
-#define TXD2 GPIO_NUM_17
+#define RXD2 GPIO_NUM_NC
+#define TXD2 GPIO_NUM_NC
+
+// GPS UART Interface
+// #define USE_GPS
+#define GPS_RXD GPIO_NUM_NC
+#define GPS_TXD GPIO_NUM_NC
 
 //#define USE_LR  // Use ESP-NOW LR mode (ESP32 only)
 
