@@ -1,4 +1,4 @@
-#define TS ((tv.tv_sec == NULL) ? millis(): tv.tv_sec)
+#define TS ((tv.tv_sec == 0) ? millis(): tv.tv_sec)
 
 #ifndef DBG_LEVEL
     #define DBG_LEVEL GLOBAL_DBG_LEVEL
@@ -10,6 +10,10 @@
     #else
         #define DBG(a) Serial.print(TS); Serial.print(" |     "); Serial.println(a);
     #endif // USE_OLED
+    #if (DBG_LEVEL == 0)
+        #define DBG1(a);
+        #define DBG2(a);
+    #endif
     #if (DBG_LEVEL == 1)
         #define DBG1(a) Serial.print(TS); Serial.print(" | [1] "); Serial.println(a);
         #define DBG2(a)
