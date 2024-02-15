@@ -375,7 +375,7 @@ crcResult getLoRa()
         }
         else if (packetCRC == crc16_update(calcCRC, 0xA1))
         { // Sender does not want ACK and CRC is valid
-          DBG("Address 0x" + String(sourceMAC, 16) + "does not want ACK");
+          DBG("Address 0x" + String(sourceMAC, 16) + " does not want ACK");
         }
         else
         {
@@ -481,7 +481,7 @@ crcResult getLoRa()
   {
     if (packetSize != 0)
     {
-      DBG2("Incoming LoRa packet of " + String(packetSize) + "bytes not processed.");
+      DBG2("Incoming LoRa packet of " + String(packetSize) + " bytes not processed.");
       //  uint8_t packet[packetSize];
       //  radio.readData((uint8_t *)&packet, packetSize);
       //  printLoraPacket(packet,sizeof(packet));
