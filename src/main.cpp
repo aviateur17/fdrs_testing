@@ -6,8 +6,11 @@
 //
 
 #include <Arduino.h>
+#include "host/credentials.h"
+#include "host/hostdefs.h"
 #include "fdrs_gateway_config.h"
 #include <fdrs_gateway.h>   
+
 
 time_t lastRunTime = 0;
 

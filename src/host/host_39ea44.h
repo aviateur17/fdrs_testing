@@ -2,34 +2,6 @@
 //
 //  GATEWAY CONFIGURATION
 
-#ifdef HOST39EA44
-    #include "host/host_39ea44.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST393C24
-    #include "host/host_393c24.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST3607C8
-    #include "host/host_3607c8.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST540B40
-    #include "host/host_540b40.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST8D6214
-    #include "host/host_8d6214.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST8EB5D0
-    #include "host/host_8eb5d0.h"
-    #define CUSTOM_CONF
-#endif
-
-
-#ifndef CUSTOM_CONF
-
 //Addresses
 #define UNIT_MAC           0x22  // The address of this gateway
 
@@ -59,9 +31,9 @@
 // LoRa Configuration
 #define RADIOLIB_MODULE SX1276
 #define LORA_SS    26
-#define LORA_RST   GPIO_NUM_NC
+#define LORA_RST   RADIOLIB_NC
 #define LORA_DIO   5
-#define LORA_BUSY  GPIO_NUM_NC
+#define LORA_BUSY  RADIOLIB_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
 // //#define USE_SX126X
 
@@ -71,7 +43,6 @@
 #define LORA_SPI_MOSI 23
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
-#define DBG_LEVEL 2
 // #define DEBUG_CONFIG
 
 // I2C - OLED or rtc
@@ -83,16 +54,17 @@
 #define USE_OLED    
 #define OLED_HEADER "FDRSGW"
 #define OLED_PAGE_SECS 30
-#define OLED_RST GPIO_NUM_NC
+#define OLED_RST -1
 
-// I2C - OLED or rtc
-// #define USE_I2C
-// #define I2C_SDA GPIO_NUM_5
-// #define I2C_SCL GPIO_NUM_6
+// RTC - I2C
+// #define USE_RTC_DS3231
+// #define RTC_ADDR 0x57
+// #define USE_RTC_DS1307
+// #define RTC_ADDR 0x68
 
 // UART data interface pins (if available)
-#define RXD2 GPIO_NUM_NC
-#define TXD2 GPIO_NUM_NC
+#define RXD2 16
+#define TXD2 17
 
 // GPS UART Interface
 // #define USE_GPS
@@ -106,7 +78,7 @@
 #define WIFI_PASS   AP_PASS
 
 // Use Static IP Address for WiFi connections
-// #define USE_STATIC_IPADDRESS     
+#define USE_STATIC_IPADDRESS     
 #define HOST_IPADDRESS      HOSTIPADDRESS
 #define GW_IPADDRESS        GATEWAY
 #define SUBNET_ADDRESS      SUBNET
@@ -137,4 +109,4 @@
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
 
-#endif // CUSTOM_CONF
+
