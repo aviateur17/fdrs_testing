@@ -41,14 +41,15 @@
 #endif // USE_ETHERNET
 
 SystemPacket theCmd;
-DataReading theData[256];
-TimeMaster timeMaster;
-uint8_t ln;
+DataReading theData[256]; // buffer for DataReadings received or to be sent, when writing we always assume index is 0 so no need to reset ln to 0
+uint8_t ln;               // index for theData[]
 uint8_t newData = event_clear;
 uint8_t newCmd = cmd_clear;
 
 DataReading fdrsData[256]; // buffer for loadFDRS()
 uint8_t data_count = 0;
+
+TimeSource timeSource;
 
 // Function Prototypes needed due to #ifdefs being moved outside of function definitions in header files 
 void broadcastLoRa();
@@ -59,7 +60,7 @@ void sendESPNowNbr(uint8_t);
 void sendESPNowPeers();
 void sendESPNow(uint8_t);
 void sendTimeSerial();
-crcResult handleLoRa();
+void handleLoRa();
 void handleMQTT();
 void handleOTA();
 
@@ -83,7 +84,7 @@ void printFDRS(DataReading*, int);
   #include "fdrs_gateway_espnow.h"
 #endif
 #ifdef USE_LORA
-  #include "fdrs_gateway_lora.h"
+  #include "fdrs_lora.h"
 #endif
 #ifdef USE_WIFI
   #include "fdrs_gateway_wifi.h"
@@ -140,7 +141,6 @@ void loadFDRS(float d, uint8_t t, uint16_t id)
 
 void beginFDRS()
 {
-  delay(10000); // ESP32S3 takes several seconds to connect to COM port so do not see the initialization
 #if defined(ESP8266)
   Serial.begin(115200);
 #elif defined(ESP32)
@@ -164,7 +164,7 @@ void beginFDRS()
   DBG("Address:" + String(UNIT_MAC, HEX));
 #ifdef USE_LORA
   begin_lora();
-  scheduleFDRS(asyncReleaseLoRaFirst, FDRS_LORA_INTERVAL);
+  // scheduleFDRS(asyncReleaseLoRaFirst, FDRS_LORA_INTERVAL);
 #endif
 #ifdef USE_WIFI
   begin_wifi();
@@ -208,23 +208,17 @@ void handleCommands()
     break;
 
   case cmd_time:
+    if(theCmd.param > MIN_TS) {
 #ifdef USE_ESPNOW
-    recvTimeEspNow(theCmd.param);
+      recvTimeEspNow(theCmd.param);
 #endif // USE_ESPNOW
-
+    }
+    else if(theCmd.param == 0) {
+#ifdef USE_ESPNOW
+      sendTimeESPNow(incMAC);
+#endif // USE_ESPNOW
+    }
     break;
-
-case cmd_time_req:
-#ifdef USE_ESPNOW
-    // theCmd.param = theCmd.param & 0x000000FF;
-    DBG1("Received ESP-NOW time request from 0x" + String((uint8_t) theCmd.param << 24,HEX));
-    sendTimeESPNow((uint8_t) theCmd.param << 24);
-#endif // USE_ESPNOW
-#ifdef USE_LORA
-    DBG1("Received LoRa time request from 0x" + String((uint16_t) theCmd.param << 16,HEX));
-    sendTimeLoRa((uint16_t) theCmd.param << 16);
-#endif // USE_LORA
-    break;  
 
   }
   theCmd.cmd = cmd_clear;
@@ -286,11 +280,10 @@ void loopFDRS()
 // "Skeleton Functions related to FDRS Actions"
 #ifndef USE_LORA
   void broadcastLoRa() {}
-  void sendLoRaNbr(uint8_t address) {}
   void timeFDRSLoRa(uint8_t *address) {}  // fdrs_gateway_lora.h
-  crcResult sendTimeLoRa() { return CRC_NULL; }                  // fdrs_gateway_time.h
-  crcResult handleLoRa() { return CRC_NULL; }                    // fdrs_gateway_lora.h
-  bool pingLoRaTimeMaster() { return false; } //fdrs_gateway_lora.h
+  void sendTimeLoRa() { return; }                  // fdrs_gateway_time.h
+  void handleLoRa() { return; }                    // fdrs_gateway_lora.h
+  bool pingLoRaTimeSource() { return false; } //fdrs_gateway_lora.h
 #endif
 #ifndef USE_ESPNOW
   void sendESPNowNbr(uint8_t interface) { }

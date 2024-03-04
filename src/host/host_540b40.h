@@ -2,6 +2,8 @@
 //
 //  GATEWAY CONFIGURATION
 
+#define __FDRS_GATEWAYCONFIG_h__
+
 //Addresses
 #define UNIT_MAC           0x20  // The address of this gateway
 
@@ -113,3 +115,14 @@
 #define LOGBUF_DELAY 10000  // Log Buffer Delay - in milliseconds
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
+
+#include <fdrs_gateway.h>
+
+
+void host_setup() {
+
+}
+
+void host_loop() {
+
+}

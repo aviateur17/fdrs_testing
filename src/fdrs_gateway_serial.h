@@ -33,10 +33,10 @@ bool gpsParse(String input) {
   struct tm gpsDateTime;
   static unsigned long lastGpsTimeSet = 0;
 
-  if(timeMaster.tmSource != TMS_GPS) {
-    timeMaster.tmSource = TMS_GPS;
-    timeMaster.tmAddress = 0xFFFF;
-    timeMaster.tmNetIf = TMIF_LOCAL;
+  if(timeSource.tmSource != TMS_GPS) {
+    timeSource.tmSource = TMS_GPS;
+    timeSource.tmAddress = 0xFFFF;
+    timeSource.tmNetIf = TMIF_LOCAL;
     DBG1("Time source is now local GPS.");
   }
 
@@ -75,7 +75,7 @@ bool gpsParse(String input) {
         + String(gpsDateTime.tm_hour) + ":" + String(gpsDateTime.tm_min) + ":" + String(gpsDateTime.tm_sec) + " UTC");
       DBG1("Setting date and time via GPS: " + String(mktime(&gpsDateTime)) + " $GNZDA");
       if(setTime(mktime(&gpsDateTime))) {
-        timeMaster.tmLastTimeSet = millis();
+        timeSource.tmLastTimeSet = millis();
         return true;
       }
     }
@@ -110,7 +110,7 @@ bool gpsParse(String input) {
         + String(gpsDateTime.tm_hour) + ":" + String(gpsDateTime.tm_min) + ":" + String(gpsDateTime.tm_sec) + " UTC");
       DBG1("Setting date and time via GPS: " + String(mktime(&gpsDateTime)) + " $GNRMC");
       if(setTime(mktime(&gpsDateTime))) {
-        timeMaster.tmLastTimeSet = millis();
+        timeSource.tmLastTimeSet = millis();
         return true;
       }
     }   
@@ -169,17 +169,18 @@ void getSerial() {
     }
     else if(obj.containsKey("cmd")) { // SystemPacket
       cmd_t c = doc[0]["cmd"];
-      if(c == cmd_time) {
-        if(timeMaster.tmNetIf < TMIF_SERIAL) {
-          timeMaster.tmNetIf = TMIF_SERIAL;
-          timeMaster.tmSource = TMS_NET;
-          timeMaster.tmAddress = 0xFFFF;
+      uint32_t p = doc[0]["param"];
+      if(c == cmd_time && p > MIN_TS) {
+        if(timeSource.tmNetIf < TMIF_SERIAL) {
+          timeSource.tmNetIf = TMIF_SERIAL;
+          timeSource.tmSource = TMS_NET;
+          timeSource.tmAddress = 0xFFFF;
           DBG1("Time source is now Serial peer");
         }
-        if(timeMaster.tmNetIf == TMIF_SERIAL) {
+        if(timeSource.tmNetIf == TMIF_SERIAL) {
           DBG1("Incoming Serial: time");
           if(setTime(doc[0]["param"])) {
-            timeMaster.tmLastTimeSet = millis();
+            timeSource.tmLastTimeSet = millis();
           }
           else {
             // Set time failed for some reason
@@ -189,6 +190,9 @@ void getSerial() {
           // There is a local time source so we do not accept serial
           DBG2("Did not set time from incoming serial.");
         }
+      }
+      else if(c == cmd_time && p == 0) {
+        // Received a request for us to send time via serial -- not implemented yet.
       }
       else {
         DBG2("Incoming Serial: unknown cmd: " + String(c));
@@ -235,7 +239,7 @@ void sendTimeSerial() {
   SysPacket[0]["param"] = now;
   serializeJson(SysPacket, UART_IF);
   UART_IF.println();
-  DBG("Sending Time via Serial.");
+  DBG1("Sending Time via Serial.");
   // String serialData;
   // DBG2("Serial data: " + serializeJson(SysPacket, serialData));
 

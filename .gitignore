@@ -1,3 +1,4 @@
 .pio
 .vscode
-host/*
+**/hostdefs.h
+**/credentials.h

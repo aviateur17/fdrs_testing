@@ -2,6 +2,8 @@
 //
 //  GATEWAY CONFIGURATION
 
+#define __FDRS_GATEWAYCONFIG_h__
+
 //Addresses
 #define UNIT_MAC           0x23  // The address of this gateway
 
@@ -35,7 +37,7 @@
 #define LORA_DIO   GPIO_NUM_5
 #define LORA_BUSY  GPIO_NUM_NC
 #define LORA_TXPWR 2   // LoRa TX power in dBm (: +2dBm - +17dBm (for SX1276-7) +20dBm (for SX1278))
-// #define LORA_ACK        // Request LoRa acknowledgment.
+#define LORA_ACK        // Request LoRa acknowledgment.
 // #define USE_SX126X
 
 #define CUSTOM_SPI
@@ -44,7 +46,7 @@
 #define LORA_SPI_MOSI GPIO_NUM_23
 
 #define FDRS_DEBUG          // Enable USB-Serial debugging
-#define DBG_LEVEL 2
+#define DBG_LEVEL 1
 // #define DEBUG_CONFIG
 
 // I2C - OLED or RTC
@@ -95,8 +97,8 @@
 #define STD_OFFSET      (-6)                // Local standard time offset in hours from UTC - if unsure, check https://time.is
 #define DST_OFFSET      (STD_OFFSET + 1)    // Local savings time offset in hours from UTC - if unsure, check https://time.is
 #define TIME_FETCHNTP     0      // Time, in minutes, between fetching time from NTP server
-#define TIME_PRINTTIME    1      // Time, in minutes, between printing local time to debug
-#define TIME_SEND_INTERVAL 5    // Time, in minutes, between sending out time to remote devices
+#define TIME_PRINTTIME    5      // Time, in minutes, between printing local time to debug
+#define TIME_SEND_INTERVAL 0    // Time, in minutes, between sending out time to remote devices
 
 // Logging settings  --  Logging will occur when MQTT is disconnected
 //#define USE_SD_LOG        //Enable SD-card logging
@@ -105,3 +107,4 @@
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
 
+#include "main_wemos_hallard.h"

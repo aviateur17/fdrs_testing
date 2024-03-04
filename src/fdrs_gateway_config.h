@@ -2,33 +2,8 @@
 //
 //  GATEWAY CONFIGURATION
 
-#ifdef HOST39EA44
-    #include "host/host_39ea44.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST393C24
-    #include "host/host_393c24.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST3607C8
-    #include "host/host_3607c8.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST540B40
-    #include "host/host_540b40.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST8D6214
-    #include "host/host_8d6214.h"
-    #define CUSTOM_CONF
-#endif
-#ifdef HOST8EB5D0
-    #include "host/host_8eb5d0.h"
-    #define CUSTOM_CONF
-#endif
-
-
-#ifndef CUSTOM_CONF
+#ifndef __FDRS_GATEWAYCONFIG_h__
+#define __FDRS_GATEWAYCONFIG_h__
 
 //Addresses
 #define UNIT_MAC           0x22  // The address of this gateway
@@ -137,4 +112,4 @@
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
 
-#endif // CUSTOM_CONF
+#endif // __FDRS_GATEWAYCONFIG_h__

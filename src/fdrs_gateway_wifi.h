@@ -217,7 +217,7 @@ void sendNTPpacket(const char * address) {
 
 void fetchNtpTime() {
   //DBG("GetTime Function");
-  if(timeMaster.tmSource <= TMS_NTP) {
+  if(timeSource.tmSource <= TMS_NTP) {
 #ifdef USE_ETHERNET
     if(eth_connected) {
 #elif defined(USE_WIFI)
@@ -234,7 +234,7 @@ void fetchNtpTime() {
         delay(10);
       }
       if(i < 800) {
-        DBG("Took " + String(i * 10) + "ms to get NTP response from " + String(timeServer) + ".");
+        DBG2("Took " + String(i * 10) + "ms to get NTP response from " + String(timeServer) + ".");
         NTPFetchFail = 0;
         // We've received a packet, read the data from it
         FDRSNtp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
@@ -256,10 +256,10 @@ void fetchNtpTime() {
         // now is epoch format - seconds since Jan 1 1970
         now = secsSince1900 - seventyYears;
         if(setTime(now)) {
-          timeMaster.tmNetIf = TMIF_LOCAL;
-          timeMaster.tmAddress = 0xFFFF;
-          timeMaster.tmSource = TMS_NTP;
-          timeMaster.tmLastTimeSet = millis();
+          timeSource.tmNetIf = TMIF_LOCAL;
+          timeSource.tmAddress = 0xFFFF;
+          timeSource.tmSource = TMS_NTP;
+          timeSource.tmLastTimeSet = millis();
           DBG1("Time source is now local NTP");
         } // UTC time
       }
