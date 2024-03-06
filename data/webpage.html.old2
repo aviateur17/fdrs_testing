@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>FDRS Gateway</title>
+</head>
+<body style='background-color: #EEEEEE;'>
+
+<span style='color: #003366;'>
+
+<h1>FDRS Gateway</h1>
+
+<form>
+  <div>
+	<br>
+  <fieldset>
+    <legend>Time Set:</legend>
+  
+  	<label for="timecurr">Current Time:</label>
+	<input type="text" id="timecurr" name="timecurr" readonly>
+    <br>
+    <label for="timecont">Controller Time:</label>
+	<input type="text" id="timecont" name="timecont" readonly>
+    <br>
+	<input type="button" id="butsettime" name="butsettime" value="Set Time" onclick="">
+    </fieldset>
+    <br><br>
+   <fieldset>
+    <legend>Debug Messages</legend>
+    <textarea name="message" style="width:600px; height:100px;">
+		Future DBG messages???
+	</textarea>
+  </fieldset>
+  </div>
+</form>
+<br>
+<p>Select LED:</p>
+  <div>
+    <input type='radio' id='ID_LED_0'
+           name='operation_mode'>
+    <label for='ID_LED_0'>LED 0</label>
+    <input type='radio' id='ID_LED_1'
+           name='operation_mode'>
+    <label for='ID_LED_1'>LED 1</label>
+    <input type='radio' id='ID_LED_2'
+           name='operation_mode'>
+    <label for='ID_LED_2'>LED 2</label>
+  </div>
+Set intensity level: <br>
+<input type='range' min='1' max='100' value='50' class='slider' id='ID_LED_INTENSITY'>
+Value: <span id='ID_LED_INTENSITY_VALUE'>-</span><br>
+
+</span>
+
+<script src="javascript.js"></script>
+</body>
+</html>

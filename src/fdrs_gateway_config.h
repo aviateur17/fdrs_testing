@@ -2,6 +2,9 @@
 //
 //  GATEWAY CONFIGURATION
 
+#ifndef __FDRS_GATEWAYCONFIG_h__
+#define __FDRS_GATEWAYCONFIG_h__
+
 //Addresses
 #define UNIT_MAC           0xee  // The address of this gateway
 
@@ -90,3 +93,4 @@
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
 
+#endif //  __FDRS_GATEWAYCONFIG_h__

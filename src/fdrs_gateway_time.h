@@ -2,6 +2,11 @@
 
 #include <WiFiUdp.h>
 
+#define TDIFF(prevMs,durationMs) (millis() - prevMs > durationMs)
+#define TDIFFRAND(prevMs,durationMs) (millis() - prevMs > (durationMs + random(0,10000)))
+#define TDIFFSEC(prevMs,durationSec) (millis() - prevMs > (durationSec * 1000))
+#define TDIFFMIN(prevMs,durationMin) (millis() - prevMs > (durationMin * 60 * 1000))
+
 // select NTP Time Server configuration
 #if defined(TIME_SERVER)
 #define FDRS_TIME_SERVER TIME_SERVER

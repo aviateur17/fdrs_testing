@@ -3,8 +3,6 @@
 //  GATEWAY Main Functions
 //  Developed by Timm Bogner (timmbogner@gmail.com)
 
-#include "hostdefs.h"
-#include "credentials.h"
 #include "fdrs_datatypes.h"
 #include "fdrs_globals.h"
 #define FDRS_GATEWAY
@@ -76,6 +74,7 @@ void releaseLogBuffer();
   #include "fdrs_gateway_mqtt.h"
   #include "fdrs_gateway_time.h"
   #include "fdrs_gateway_ota.h"
+  #include "fdrs_webserver.h"
 #endif
 #if defined(USE_FS_LOG) || defined(USE_SD_LOG)
   #include "fdrs_gateway_filesystem.h"
@@ -133,6 +132,7 @@ void beginFDRS()
   begin_mqtt();
   begin_ntp();
   begin_OTA();
+  begin_webserver();
 #endif
 #ifdef USE_ESPNOW
   begin_espnow();
@@ -188,6 +188,7 @@ void loopFDRS()
   updateTime();
   handleMQTT();
   handleOTA();
+  handleWebserver();
 #endif
 #ifdef USE_OLED
   drawPageOLED(true);

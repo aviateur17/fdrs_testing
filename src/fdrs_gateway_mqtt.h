@@ -174,7 +174,7 @@ void sendMQTT()
 {
 #ifdef USE_WIFI
     DBG("Sending MQTT.");
-    DynamicJsonDocument doc(24576);
+    JsonDocument doc;
     for (int i = 0; i < ln; i++)
     {
         doc[i]["id"] = theData[i].id;

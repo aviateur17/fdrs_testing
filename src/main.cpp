@@ -19,7 +19,6 @@ static const char TAG[] = __FILE__;
 #include "host/credentials.h"
 #include "host/hostdefs.h"
 
-
 #ifdef HOST8D7F60
     #include "host/host_8d7f60.h"
 #endif

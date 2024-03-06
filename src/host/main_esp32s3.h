@@ -6,7 +6,7 @@
 #define LEDOFF 1
 
 // TaskHandle_t tskLedFlash;
-// int ledBlinks = 2;
+uint ledBlinks = 2;
 unsigned long ledtime;
 
 // initialize LED on GPIO2 as output and Pull down
@@ -78,5 +78,5 @@ void host_setup() {
 }
 
 void host_loop() {
-  ledblink(2);
+  ledblink(ledBlinks);
 }
