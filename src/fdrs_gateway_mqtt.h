@@ -49,6 +49,7 @@ unsigned long lastMqttConnectAttempt = 0;
 const char *mqtt_server = FDRS_MQTT_ADDR;
 const int mqtt_port = FDRS_MQTT_PORT;
 
+
 #ifdef FDRS_MQTT_AUTH
 const char *mqtt_user = FDRS_MQTT_USER;
 const char *mqtt_pass = FDRS_MQTT_PASS;
@@ -65,7 +66,7 @@ void reconnect_mqtt(short int attempts, bool silent)
     for (short int i = 1; i <= attempts; i++)
     {
         // Attempt to connect
-        if (client.connect("FDRS_GATEWAY_540b40", mqtt_user, mqtt_pass))
+        if (client.connect("FDRS_GATEWAY", mqtt_user, mqtt_pass))
         {
             // Subscribe
             client.subscribe(TOPIC_COMMAND);
@@ -146,6 +147,7 @@ void begin_mqtt()
 {
     client.setServer(mqtt_server, mqtt_port);
     client.setBufferSize(MQTT_MAX_BUFF_SIZE);
+
     if (!client.connected())
     {
         reconnect_mqtt(5);
@@ -157,21 +159,8 @@ void mqtt_publish(const char *payload)
 {
     if (!client.publish(TOPIC_DATA, payload))
     {
-        DBG1(" Error on sending MQTT");
-#if defined(USE_SD_LOG) || defined(USE_FS_LOG)
-        sendLog();
-#endif
-    }
-    else
-    {
-#if defined(USE_SD_LOG) || defined(USE_FS_LOG)
-        if (last_log_write >= last_mqtt_success)
-        {
-            releaseLogBuffer();
-            resendLog();
-        }
-        time(&last_mqtt_success);
-#endif
+        DBG(" Error on sending MQTT");
+
     }
 }
 
@@ -184,10 +173,8 @@ void sendMQTT()
         doc[i]["id"] = theData[i].id;
         doc[i]["type"] = theData[i].t;
         doc[i]["data"] = theData[i].d;
-        doc[i]["time"] = time(nullptr);
     }
-    char mqtt_payload[measureJson(doc) + 1];
-    serializeJson(doc, mqtt_payload, sizeof(mqtt_payload));
-    mqtt_publish(mqtt_payload);
-    DBG1("MQTT Data: " + String(mqtt_payload));
+    String outgoingString;
+    serializeJson(doc, outgoingString);
+    mqtt_publish((char *)outgoingString.c_str());
 }

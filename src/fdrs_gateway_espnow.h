@@ -32,12 +32,14 @@ bool pingFlagEspNow = false;
 #if defined(ESP8266)
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus)
 {
+esp_now_sent_flag = true;
 }
 void OnDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len)
 {
 #elif defined(ESP32)
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
+esp_now_sent_flag = true;
 }
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
@@ -45,14 +47,14 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
   memcpy(&incMAC, mac, sizeof(incMAC));
   if (len < sizeof(DataReading))
   {
-    DBG1("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
+    DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
     // processing is handled in the handlecommands() function in gateway.h - do not process here
     return;
   }
   else {
     memcpy(&theData, incomingData, sizeof(theData));
-    DBG1("Incoming ESP-NOW Data Reading from 0x" + String(incMAC[5], HEX));
+    DBG("Incoming ESP-NOW DataReading from 0x" + String(incMAC[5], HEX));
     ln = len / sizeof(DataReading);
     if (memcmp(&incMAC, &ESPNOW1, 6) == 0)
     {
@@ -114,7 +116,6 @@ void begin_espnow()
 #endif // ESP8266
   DBG(" ESP-NOW Initialized.");
 }
-
 
 // Returns an expired entry in peer_list, -1 if full.
 int find_espnow_peer()
@@ -434,6 +435,8 @@ esp_err_t sendESPNow(uint8_t *dest, DataReading *data) {
     return sendResult;
 }
 
+
+
 void sendESPNow(uint8_t address)
 {
   DBG("Sending ESP-NOW DR.");
@@ -469,7 +472,7 @@ void sendESPNow(uint8_t address)
 }
 
 void recvTimeEspNow(uint32_t t) {
-  // Process time if there is no source set yet or if LoRa is the source or if we are already the time source
+  // Process time if there is no time source set yet or if LoRa is the time source or if we are already the time source
   if(timeSource.tmNetIf <= TMIF_ESPNOW ) {
     DBG1("Received time via ESP-NOW from 0x" + String(incMAC[5], HEX));
     if(timeSource.tmNetIf < TMIF_ESPNOW) {

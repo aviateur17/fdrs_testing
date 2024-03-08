@@ -137,7 +137,6 @@ void init_oled(){
   digitalWrite(OLED_RST, LOW);
   delay(30);
   digitalWrite(OLED_RST, HIGH);
-  Wire.begin(I2C_SDA, I2C_SCL);
   display.init();
   display.flipScreenVertically();
   draw_OLED_header();

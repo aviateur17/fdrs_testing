@@ -2,9 +2,16 @@
 
 #if defined (ESP32)
   #define UART_IF Serial1
-  #define GPS_IF Serial2
+  #ifdef USE_GPS
+    #define GPS_IF Serial2
+  #endif
+#elif defined (ESP8266)
+  #define UART_IF Serial
 #else
   #define UART_IF Serial
+  #ifdef USE_GPS
+    #define GPS_IF Serial1
+  #endif
 #endif
 
 #if defined(ESP32)
@@ -120,7 +127,6 @@ bool gpsParse(String input) {
 
 void getSerial() {
   String incomingString;
-  static int i;
 
   if (UART_IF.available()){
    incomingString =  UART_IF.readStringUntil('\n');
@@ -128,14 +134,15 @@ void getSerial() {
   else if (Serial.available()){
    incomingString =  Serial.readStringUntil('\n');
   }
+#ifdef GPS_IF
   if (GPS_IF.available()){
-
+   
    // Data is coming in every second from the GPS, let's minimize the processing power
    // required by only parsing periodically - maybe every 60 seconds.
    static unsigned long lastGpsParse = 0;
    if(lastGpsParse == 0 || TDIFFSEC(lastGpsParse,60)) {
-    lastGpsParse = millis();
-    for(int i=0; i < 20; i++) {
+      lastGpsParse = millis();
+      for(int i=0; i < 20; i++) {
       incomingString =  GPS_IF.readStringUntil('\n');
       if(gpsParse(incomingString)) {
         return;
@@ -144,6 +151,7 @@ void getSerial() {
    }
    return;
   }
+#endif // GPS_IF
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, incomingString);
   if (error) {    // Test if parsing succeeds.
@@ -159,13 +167,13 @@ void getSerial() {
       theData[i].id = doc[i]["id"];
       theData[i].t = doc[i]["type"];
       theData[i].d = doc[i]["data"];
-      }
-      ln = s;
-      newData = event_serial;
-      DBG1("Incoming Serial: DR");
+    }
+    ln = s;
+    newData = event_serial;
+    DBG("Incoming Serial");
       String data;
       serializeJson(doc, data);
-      DBG1("Serial data: " + data);
+      DBG1("DR data: " + data);
     }
     else if(obj.containsKey("cmd")) { // SystemPacket
       cmd_t c = doc[0]["cmd"];
@@ -177,13 +185,13 @@ void getSerial() {
           timeSource.tmAddress = 0xFFFF;
           DBG1("Time source is now Serial peer");
         }
-        if(timeSource.tmNetIf == TMIF_SERIAL) {
-          DBG1("Incoming Serial: time");
-          if(setTime(doc[0]["param"])) {
-            timeSource.tmLastTimeSet = millis();
-          }
-          else {
-            // Set time failed for some reason
+        if(timeSource.tmNetIf == TMIF_SERIAL) { 
+        DBG1("Incoming Serial: time");
+if(setTime(doc[0]["param"])) {
+        timeSource.tmLastTimeSet = millis();
+      }
+      else {
+        // Set time failed for some reason
           }
         }
         else {
@@ -214,19 +222,25 @@ void sendSerial() {
     doc[i]["data"] = theData[i].d;
   }
   DBG("Sending Serial.");
+  // String data;
+  // serializeJson(doc, data);
+  // DBG("Serial data: " + data);
+
   serializeJson(doc, UART_IF);
   UART_IF.println();
-  String data;
-  serializeJson(doc, data);
-  DBG2("Serial data: " + data);
 
 #ifndef ESP8266
-  
+  serializeJson(doc, Serial);
+  Serial.println();
 #endif
 
 }
 void handleSerial(){
+#ifdef GPS_IF
   while (UART_IF.available() || Serial.available() || GPS_IF.available())
+#else
+  while (UART_IF.available() || Serial.available())
+#endif
   {
     getSerial();
   }
@@ -239,8 +253,8 @@ void sendTimeSerial() {
   SysPacket[0]["param"] = now;
   serializeJson(SysPacket, UART_IF);
   UART_IF.println();
-  DBG1("Sending Time via Serial.");
-  // String serialData;
+  DBG("Sending Time via Serial.");
+// String serialData;
   // DBG2("Serial data: " + serializeJson(SysPacket, serialData));
 
 #ifndef ESP8266
@@ -250,5 +264,11 @@ void sendTimeSerial() {
 }
 
 void begin_gps() {
-  GPS_IF.begin(9600, SERIAL_8N1, GPS_RXD, GPS_TXD);
+#ifdef GPS_IF
+#ifdef ARDUINO_ARCH_SAMD
+    GPS_IF.begin(9600);
+  #else
+    GPS_IF.begin(9600, SERIAL_8N1, GPS_RXD, GPS_TXD);
+  #endif  
+#endif
 }

@@ -29,7 +29,6 @@
 // ASSERT("NO WiFi password defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h");
 #endif // WIFI_PASS
 
-
 // select Host IP Address
 #if defined(HOST_IPADDRESS)
 #define FDRS_HOST_IPADDRESS HOST_IPADDRESS
@@ -176,7 +175,7 @@ void begin_wifi()
   WiFi.config(hostIpAddress, gatewayAddress, subnetAddress, dns1Address, dns2Address);
 #endif
   WiFi.begin(ssid, password);
-  int connectTries = 0;
+int connectTries = 0;
   while (WiFi.status() != WL_CONNECTED)
   {
     connectTries++;
@@ -187,7 +186,7 @@ void begin_wifi()
         DBG("Restarting ESP32: WiFi issues\n");
         delay(5000);  
         ESP.restart();
-      }
+}
   }
 #endif // USE_ETHERNET
 }
@@ -216,55 +215,55 @@ void sendNTPpacket(const char * address) {
 }
 
 void fetchNtpTime() {
-  //DBG("GetTime Function");
+//DBG("GetTime Function");
   if(timeSource.tmSource <= TMS_NTP) {
 #ifdef USE_ETHERNET
-    if(eth_connected) {
+  if(eth_connected) {
 #elif defined(USE_WIFI)
-    if(WiFi.status() == WL_CONNECTED) {
+  if(WiFi.status() == WL_CONNECTED) {
 #endif
-      //DBG("Calling .begin function");
-      FDRSNtp.begin(localPort);
+    //DBG("Calling .begin function");
+    FDRSNtp.begin(localPort);
 
-      sendNTPpacket(timeServer); // send an NTP packet to a time server
-      uint i = 0;
-      for(i = 0; i < 800; i++) {
-        if(FDRSNtp.parsePacket())
-          break;
-        delay(10);
-      }
-      if(i < 800) {
-        DBG2("Took " + String(i * 10) + "ms to get NTP response from " + String(timeServer) + ".");
-        NTPFetchFail = 0;
-        // We've received a packet, read the data from it
-        FDRSNtp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
+    sendNTPpacket(timeServer); // send an NTP packet to a time server
+    uint i = 0;
+    for(i = 0; i < 800; i++) {
+      if(FDRSNtp.parsePacket())
+        break;
+      delay(10);
+    }
+    if(i < 800) {
+      DBG2("Took " + String(i * 10) + "ms to get NTP response from " + String(timeServer) + ".");
+      NTPFetchFail = 0;
+      // We've received a packet, read the data from it
+      FDRSNtp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
 
-        // the timestamp starts at byte 40 of the received packet and is four bytes,
-        // or two words, long. First, extract the two words:
+      // the timestamp starts at byte 40 of the received packet and is four bytes,
+      // or two words, long. First, extract the two words:
 
-        unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-        unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-        // combine the four bytes (two words) into a long integer
-        // this is NTP time (seconds since Jan 1 1900):
-        unsigned long secsSince1900 = highWord << 16 | lowWord;
-        //DBG("Seconds since Jan 1 1900 = " + String(secsSince1900));
-        
-        // now convert NTP time into everyday time:
-        // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-        const unsigned long seventyYears = 2208988800UL;
-        // subtract seventy years:
-        // now is epoch format - seconds since Jan 1 1970
-        now = secsSince1900 - seventyYears;
-        if(setTime(now)) {
+      unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+      unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+      // combine the four bytes (two words) into a long integer
+      // this is NTP time (seconds since Jan 1 1900):
+      unsigned long secsSince1900 = highWord << 16 | lowWord;
+      //DBG("Seconds since Jan 1 1900 = " + String(secsSince1900));
+      
+      // now convert NTP time into everyday time:
+      // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
+      const unsigned long seventyYears = 2208988800UL;
+      // subtract seventy years:
+      // now is epoch format - seconds since Jan 1 1970
+      now = secsSince1900 - seventyYears;
+      if(setTime(now)) {
           timeSource.tmNetIf = TMIF_LOCAL;
           timeSource.tmAddress = 0xFFFF;
           timeSource.tmSource = TMS_NTP;
           timeSource.tmLastTimeSet = millis();
           DBG1("Time source is now local NTP");
         } // UTC time
-      }
-      else {
-        DBG1("Timeout getting a NTP response.");
+          }
+    else {
+      DBG1("Timeout getting a NTP response.");
       }
     }
   }

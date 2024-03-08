@@ -3,6 +3,9 @@
 // Global Configuration
 
 // Developed by Timm Bogner (timmbogner@gmail.com) in Urbana, Illinois, USA.
+#ifndef __FDRS_GLOBALS_h__
+#define __FDRS_GLOBALS_h__
+
 #define GLOBAL_DBG_LEVEL 0
 
 #define GLOBAL_WIFI_SSID        "Your SSID"
@@ -16,18 +19,19 @@
 //#define GLOBAL_MQTT_AUTH   //uncomment to enable MQTT authentication  
 #define GLOBAL_MQTT_USER   "Your MQTT Username"
 #define GLOBAL_MQTT_PASS   "Your MQTT Password"
-
-// NTP Time Server
-#define GLOBAL_TIME_SERVER      "0.us.pool.ntp.org"
-#define GLOBAL_LOCAL_OFFSET     (-5)    // Time in hours between local time and UTC
-#define GLOBAL_TIME_FETCHNTP    15      // Time in minutes between fetching time from NTP server
-#define GLOBAL_TIME_PRINTTIME   10      // Time in minutes between printing local time
-
 // MQTT Topics
 #define TOPIC_DATA    "fdrs/data"
 #define TOPIC_STATUS  "fdrs/status"
 #define TOPIC_COMMAND "fdrs/command"
 #define TOPIC_DATA_BACKLOG "fdrs/databacklog"   // Used in filesystem module
+
+// NTP Time Server
+#define GLOBAL_TIME_SERVER      "0.us.pool.ntp.org"
+#define GLOBAL_LOCAL_OFFSET     (-5)    // Time in hours between local time and UTC
+#define GLOBAL_TIME_FETCHNTP    60      // Time in minutes between fetching time from NTP server
+#define GLOBAL_TIME_PRINTTIME   15      // Time in minutes between printing local time
+#define GLOBAL_TIME_SEND_INTERVAL 60    // Time in minutes between sending out time
+
 
 #define GLOBAL_LORA_FREQUENCY 915.0   // Carrier frequency in MHz. Allowed values range from 137.0 MHz to 1020.0 MHz (varies by chip).
 #define GLOBAL_LORA_SF 7     // LoRa link spreading factor. Allowed values range from 6 to 12.
@@ -45,3 +49,18 @@
 #if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
   #define USE_RTC
 #endif
+
+#if defined(USE_GPS) && defined(ESP8266)
+  #error "For ESP8266 only one UART has both Tx and Rx capabilities. GPS not supported for ESP8266"
+#endif
+
+#if defined(USE_ETHERNET) && !defined(ESP32)
+  #error "Ethernet only supported for ESP32."
+#endif
+
+#if defined(USE_OLED) && (!defined(ESP32) && !defined(ESP8266))
+  #warning "OLED current supported for only ESP32 or ESP8266."
+  #undef USE_OLED
+#endif
+
+#endif // __FDRS_GLOBALS_h__

@@ -1,6 +1,6 @@
 #include <sys/time.h>
 
-#define MIN_TS 1707000000 // Time in Unit timestamp format should be greater than this number to be valid
+#define MIN_TS 1709000000 // Time in Unit timestamp format should be greater than this number to be valid
 #define MAX_TS 3318000000 // time in Unit timestamp format should be less than this number to be valid
 #define VALID_TS(_unixts) ( (_unixts > MIN_TS && _unixts < MAX_TS) ? true : false )
 
@@ -8,6 +8,13 @@
 #define TDIFFRAND(prevMs,durationMs) (millis() - prevMs > (durationMs + random(0,10000)))
 #define TDIFFSEC(prevMs,durationSec) (millis() - prevMs > (durationSec * 1000))
 #define TDIFFMIN(prevMs,durationMin) (millis() - prevMs > (durationMin * 60 * 1000))
+
+// select Time, in minutes, between sending out time
+#if defined(TIME_SEND_INTERVAL)
+#define FDRS_TIME_SEND_INTERVAL TIME_SEND_INTERVAL
+#else
+#define FDRS_TIME_SEND_INTERVAL GLOBAL_TIME_SEND_INTERVAL
+#endif // TIME_SEND_INTERVAL
 
 // select Time, in minutes, between time printed configuration
 #if defined(TIME_PRINTTIME)
@@ -41,7 +48,6 @@ struct tm timeinfo;                   // Structure containing time elements
 struct timeval tv;
 bool validTimeFlag = false;           // Indicate whether we have reliable time 
 bool validRtcFlag = false;            // Is RTC date and time valid?
-// time_t lastNTPFetchSuccess = 0;      // Last time that a successful NTP fetch was made
 bool isDST;                           // Keeps track of Daylight Savings Time vs Standard Time
 long slewSecs = 0;                  // When time is set this is the number of seconds the time changes
 double stdOffset = (FDRS_STD_OFFSET * 60 * 60);  // UTC -> Local time, in Seconds, offset from UTC in Standard Time
@@ -121,7 +127,7 @@ void begin_rtc() {
 #endif // USE_RTC
 
 bool validTime() {
-  if(!VALID_TS(now) || timeSource.tmSource == TMS_NONE) {
+  if(!VALID_TS(now)) {
     if(validTimeFlag) {
       DBG1("Time no longer reliable.");
       validTimeFlag = false;
@@ -275,7 +281,7 @@ void checkDST() {
 // Periodically send time to ESP-NOW or LoRa nodes associated with this gateway/controller
 void sendTime() {
   if(validTime()) { // Only send time if it is valid
-    DBG("Sending out time");
+    DBG1("Sending out time");
 #if defined(USE_WIFI) || defined(USE_ETHERNET)    
     sendTimeSerial();
 #endif    
@@ -294,7 +300,7 @@ bool setTime(time_t currentTime) {
   }
   now = currentTime;
   slewSecs = now - previousTime;
-  if(slewSecs > 1) {
+  if(slewSecs > 2) {
     DBG1("Time adjust " + String(slewSecs) + " secs");
   }
 
@@ -320,7 +326,7 @@ bool setTime(time_t currentTime) {
   // loadFDRS(slewSecs, TIME_T, 111);
   // Do not call sendFDRS here.  It will not work for some reason.
   if(validTime()) {
-    if(TIME_SEND_INTERVAL == 0 && (TDIFF(lastTimeSend,5000) || lastTimeSend == 0)) { // avoid sending twice on start with RTC and WiFi
+    if(FDRS_TIME_SEND_INTERVAL == 0 && (TDIFF(lastTimeSend,5000) || lastTimeSend == 0)) { // avoid sending twice on start with RTC and WiFi
       sendTime();
       lastTimeSend = millis();
     }
@@ -351,7 +357,7 @@ void handleTime() {
 #endif // USE_RTC
 
   // Send out time to other devices if we have exceeded the time send interval
-  if(validTimeFlag && (TIME_SEND_INTERVAL != 0) && TDIFFMIN(lastTimeSend,TIME_SEND_INTERVAL)) {
+  if(validTimeFlag && (FDRS_TIME_SEND_INTERVAL != 0) && TDIFFMIN(lastTimeSend,FDRS_TIME_SEND_INTERVAL)) {
     lastTimeSend = millis();
     sendTime();
   }
@@ -370,7 +376,7 @@ void adjTimeforNetDelay(time_t newOffset) {
   if(newOffset < UINT32_MAX && validTime()) {
     now = now + newOffset - previousOffset;
     previousOffset = newOffset;
-    if(newOffset > 1) {
+    if(newOffset > 2) {
       DBG1("Time adj by " + String(newOffset) + " secs");
     }
   }

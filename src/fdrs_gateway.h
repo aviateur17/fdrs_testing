@@ -41,15 +41,14 @@
 #endif // USE_ETHERNET
 
 SystemPacket theCmd;
-DataReading theData[256]; // buffer for DataReadings received or to be sent, when writing we always assume index is 0 so no need to reset ln to 0
-uint8_t ln;               // index for theData[]
+DataReading theData[256];
+TimeSource timeSource;
+uint8_t ln;
 uint8_t newData = event_clear;
 uint8_t newCmd = cmd_clear;
 
 DataReading fdrsData[256]; // buffer for loadFDRS()
 uint8_t data_count = 0;
-
-TimeSource timeSource;
 
 // Function Prototypes needed due to #ifdefs being moved outside of function definitions in header files 
 void broadcastLoRa();
@@ -89,10 +88,9 @@ void printFDRS(DataReading*, int);
 #ifdef USE_WIFI
   #include "fdrs_gateway_wifi.h"
   #include "fdrs_gateway_mqtt.h"
+#include "fdrs_gateway_ota.h"
 #endif
-#if defined(USE_FS_LOG) || defined(USE_SD_LOG)
-  #include "fdrs_gateway_filesystem.h"
-#endif
+
 #ifdef DEBUG_CONFIG
   #include "fdrs_checkConfig.h"
 #endif
@@ -164,23 +162,18 @@ void beginFDRS()
   DBG("Address:" + String(UNIT_MAC, HEX));
 #ifdef USE_LORA
   begin_lora();
-  // scheduleFDRS(asyncReleaseLoRaFirst, FDRS_LORA_INTERVAL);
-#endif
+  #endif
 #ifdef USE_WIFI
   begin_wifi();
   DBG("Connected.");
   begin_mqtt();
   begin_ntp();
+  begin_OTA();
 #endif
 #ifdef USE_ESPNOW
   begin_espnow();
 #endif
-#ifdef USE_SD_LOG
-  begin_SD();
-#endif
-#ifdef USE_FS_LOG
-  begin_FS();
-#endif
+
 
 #ifdef USE_WIFI
   client.publish(TOPIC_STATUS, "FDRS initialized");
@@ -218,8 +211,8 @@ void handleCommands()
       sendTimeESPNow(incMAC);
 #endif // USE_ESPNOW
     }
-    break;
-
+    
+    break;  
   }
   theCmd.cmd = cmd_clear;
   theCmd.param = 0;
@@ -271,6 +264,7 @@ void loopFDRS()
   handleSerial();
   handleLoRa();
   handleMQTT();
+  handleOTA();
 #ifdef USE_OLED
   drawPageOLED(true);
 #endif
@@ -280,6 +274,7 @@ void loopFDRS()
 // "Skeleton Functions related to FDRS Actions"
 #ifndef USE_LORA
   void broadcastLoRa() {}
+  void sendLoRaNbr(uint8_t address) {}
   void timeFDRSLoRa(uint8_t *address) {}  // fdrs_gateway_lora.h
   void sendTimeLoRa() { return; }                  // fdrs_gateway_time.h
   void handleLoRa() { return; }                    // fdrs_gateway_lora.h
