@@ -1,0 +1,81 @@
+<!--  Double quotes need to be escaped by a backslash -->
+<!--  if embedding directly into a C file -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>FDRS Gateway</title>
+</head>
+<body style='background-color: #EEEEEE;'>
+
+<span style='color: #003366;'>
+
+<h1>FDRS Gateway</h1><br>
+MAC: <p id='ctrlrmac'> </p>
+IP: <p id='ctrlrip'></p>
+
+<form>
+  <div>
+	<br>
+  <fieldset>
+    <legend>Time Set:</legend>
+    PC Time: <p id='pctime'></p>
+    <br>
+    Controller Time: <p id='ctrlrtime'></p>
+    <br>
+	<input type='button' id='butsettime' name='butsettime' value='Set Time' onclick='btnTimePressed()'>
+    </fieldset>
+    <br><br>
+   <fieldset>
+    <legend>Debug Messages</legend>
+    <textarea name='message' style='width:600px; height:100px;'>
+		Future DBG message
+	</textarea>
+  </fieldset>
+  </div>
+</form>
+
+<script>
+  var Socket;
+
+    function init() {
+      Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+      Socket.onmessage = function(event) { processCommand(event); };
+    }
+  
+  function processCommand(event) {
+		var obj = JSON.parse(event.data);
+  	var type = obj.type;
+		if(type.localeCompare("cmd_time") == 0) { 
+			const espTime = Date(obj.value);
+			document.getElementById('ctrlrtime').innerHTML = espTime;
+		}
+        if(type.localeCompare("cmd_mac") == 0) {
+        	document.getElementById('ctrlrmac').innerHTML = obj.value;
+        }
+        if(type.localeCompare("cmd_ip") == 0) {
+        	document.getElementById('ctrlrip').innerHTML = obj.value;
+        }
+		else {
+			console.log(type);
+		}
+  }
+
+  setInterval(pcDate,1000); // Update PC time every second
+  
+  function pcDate() {
+    document.getElementById('pctime').innerHTML = Date();
+  }
+  function btnTimePressed() {
+  	var l_time = Date.now();
+  	console.log(l_time);
+  	var msg = {type: "cmd_time", value: "l_time"};
+  	Socket.send(JSON.stringify(msg));
+  }
+  
+  window.onload = function(event) {
+      init();
+    }
+</script>
+</body>
+</html>

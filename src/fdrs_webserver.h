@@ -1,25 +1,33 @@
-#include <WebServer.h>
-#include <WebSocketsServer.h>
+#ifdef ESP32
+// #include <FS.h>
+// #include <SPIFFS.h>
+// #include <ESPmDNS.h>
+// #include <WiFi.h>
+#include <AsyncTCP.h>
+#elif defined(ESP8266)
+// #include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+// #include <ESP8266mDNS.h>
+#endif
+#include <ESPAsyncWebServer.h>
+// #include <SPIFFSEditor.h>
 
-// https://htmlcompressor.com/compressor/
-// The String below "webpage" contains the complete HTML code that is sent to the client whenever someone connects to the webserver
-// NOTE 27.08.2022: I updated in the webpage "slider.addEventListener('click', slider_changed);" to "slider.addEventListener('change', slider_changed);" -> the "change" did not work on my phone.
-// String webpage = "<!DOCTYPE html><html><head><title>FDRS</title></head><body style='background-color: #EEEEEE;'><span style='color: #003366;'><h1>LED Controller</h1><form> <p>Select LED:</p> <div> <input type='radio' id='ID_LED_0' name='operation_mode'> <label for='ID_LED_0'>LED 0</label> <input type='radio' id='ID_LED_1' name='operation_mode'> <label for='ID_LED_1'>LED 1</label> <input type='radio' id='ID_LED_2' name='operation_mode'> <label for='ID_LED_2'>LED 2</label> </div></form><br>Set intensity level: <br><input type='range' min='1' max='100' value='50' class='slider' id='LED_INTENSITY'>Value: <span id='LED_VALUE'>-</span><br></span></body><script> document.getElementById('ID_LED_0').addEventListener('click', led_changed); document.getElementById('ID_LED_1').addEventListener('click', led_changed); document.getElementById('ID_LED_2').addEventListener('click', led_changed); var slider = document.getElementById('LED_INTENSITY'); var output = document.getElementById('LED_VALUE'); slider.addEventListener('change', slider_changed); var Socket; function init() { Socket = new WebSocket('ws://' + window.location.hostname + ':81/'); Socket.onmessage = function(event) { processCommand(event); }; } function led_changed() {var l_LED_selected = 0;if(document.getElementById('ID_LED_1').checked == true) { l_LED_selected = 1;} else if(document.getElementById('ID_LED_2').checked == true) { l_LED_selected = 2;}console.log(l_LED_selected); var msg = { type: 'LED_selected', value: l_LED_selected};Socket.send(JSON.stringify(msg)); } function slider_changed () { var l_LED_intensity = slider.value;console.log(l_LED_intensity);var msg = { type: 'LED_intensity', value: l_LED_intensity};Socket.send(JSON.stringify(msg)); } function processCommand(event) {var obj = JSON.parse(event.data); var type = obj.type;if (type.localeCompare(\"LED_intensity\") == 0) { var l_LED_intensity = parseInt(obj.value); console.log(l_LED_intensity); slider.value = l_LED_intensity; output.innerHTML = l_LED_intensity;}else if(type.localeCompare(\"LED_selected\") == 0) { var l_LED_selected = parseInt(obj.value); console.log(l_LED_selected); if(l_LED_selected == 0) { document.getElementById('ID_LED_0').checked = true; } else if (l_LED_selected == 1) { document.getElementById('ID_LED_1').checked = true; } else if (l_LED_selected == 2) { document.getElementById('ID_LED_2').checked = true; }} } window.onload = function(event) { init(); }</script></html>";
-// String webpage = "<!DOCTYPE html> <html> <head> <title>FDRS Gateway</title> </head> <body style=background-color:#eee> <span style=color:#036> <h1>FDRS Gateway</h1> <form> <div> <br> <fieldset> <legend>Time Set:</legend> <br>PC Time: <p id=pctime></p> <br> <br>Controller Time: <p id=ctrlrtime></p> <br> <input type=button id=butsettime name=butsettime value='Set Time' onclick=btnTimePressed()> </fieldset> <br><br> <fieldset> <legend>Debug Messages</legend> <textarea name=message style=width:600px;height:100px>Future DBG messages???</textarea> </fieldset> </div> </form> <script>var Socket;var espTime=new Date();function init(){Socket=new WebSocket('ws://'+window.location.hostname+':81/');Socket.onmessage=function(a){processCommand(a)}}function processCommand(b){var c=JSON.parse(b.data);var a=c.type;if(a.localeCompare(\"cmd_time\")==0){espTime=Date(parseInt(c.value));document.getElementById(\"ctrlrtime\").innerHTML=espTime}else{console.log(a)}}setInterval(pcDate,1000);function pcDate(){document.getElementById(\"pctime\").innerHTML=Date()}function btnTimePressed(){}window.onload=function(a){init()};</script> </body> </html>";
 #include "fdrs_webpage.h"
 
-// Type can be LED_intensity or LED_selected
-// Value either which LED or the intensity value
-
-// Initialization of webserver and websocket
-WebServer server(80);                                 // the server uses port 80 (standard port for websites
-WebSocketsServer webSocket = WebSocketsServer(81);    // the websocket uses port 81 (standard port for websockets
-
-uint LED_selected = 0;
-uint LED_intensity = 50;
-extern uint ledBlinks;
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
+// AsyncEventSource events("/events");
 
 // Simple function to send information to the web clients
+void sendJson(AsyncWebSocketClient * client, String l_type, String l_value) {
+    String jsonString = "";                           // create a JSON string for sending data to the client
+    JsonDocument doc;                      // create JSON container
+    JsonObject object = doc.to<JsonObject>();         // create a JSON Object
+    object["type"] = l_type;                          // write data into the JSON object -> I used "type" to identify if LED_selected or LED_intensity is sent and "value" for the actual value
+    object["value"] = l_value;
+    serializeJson(doc, jsonString);                // convert JSON object to string
+    client->text(jsonString);               // send JSON string to all clients
+}
 void sendJson(String l_type, String l_value) {
     String jsonString = "";                           // create a JSON string for sending data to the client
     JsonDocument doc;                      // create JSON container
@@ -27,96 +35,158 @@ void sendJson(String l_type, String l_value) {
     object["type"] = l_type;                          // write data into the JSON object -> I used "type" to identify if LED_selected or LED_intensity is sent and "value" for the actual value
     object["value"] = l_value;
     serializeJson(doc, jsonString);                // convert JSON object to string
-    webSocket.broadcastTXT(jsonString);               // send JSON string to all clients
+    ws.textAll(jsonString);               // send JSON string to all clients
 }
-void sendJson(SystemPacket *sp) {
+void sendJson(AsyncWebSocketClient * client, SystemPacket *sp) {
   JsonDocument doc;
   String s;
   doc["type"] = sp->cmd;
   doc["value"] = sp->param;
   serializeJson(doc,s);
-  webSocket.broadcastTXT(s);
+  client->text(s);
 }
 
-void webSocketEvent(byte num, WStype_t type, uint8_t * payload, size_t length) {      // the parameters of this callback function are always the same -> num: id of the client who send the event, type: type of message, payload: actual data sent and length: length of payload
-  switch (type) {                                     // switch on the type of information sent
-    case WStype_DISCONNECTED:                         // if a client is disconnected, then type == WStype_DISCONNECTED
-      DBG2("Client " + String(num) + " disconnected");
-      break;
-    case WStype_CONNECTED:                            // if a client is connected, then type == WStype_CONNECTED
-      DBG2("Client " + String(num) + " connected");
-      // optionally you can add code here what to do when connected
-      // send LED_intensity and LED_select to clients -> as optimization step one could send it just to the new client "num", but for simplicity I left that out here
-      sendJson("cmd_time", String(now));
-      sendJson("LED_intensity", String(LED_intensity));
-      sendJson("LED_selected", String(LED_selected));
-      break;
-    case WStype_TEXT:                                 // if a client has sent data, then type == WStype_TEXT
-      // try to decipher the JSON string received
-      JsonDocument doc;                    // create JSON container 
-      DeserializationError error = deserializeJson(doc, payload);
-      if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.f_str());
-        return;
-      }
-      else {
-        // JSON string was received correctly, so information can be retrieved:
-        const char* l_type = doc["type"];
-        const int l_value = doc["value"];
-        Serial.println("Type: " + String(l_type));
-        Serial.println("Value: " + String(l_value));
+void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
+  if(type == WS_EVT_CONNECT){
+    DBGF2("ws[%s][%u] connect\n", server->url(), client->id());
+    // client->printf("Hello Client %u :)", client->id());
+    // client->ping();
+    sendJson(client, "cmd_time", String(now));
+    sendJson(client, "cmd_mac", String(UNIT_MAC,HEX));
+    sendJson(client, "cmd_ip", String(WiFi.localIP().toString()));
+    sendJson(client, "cmd_dbg_level", String(debugLevel));
 
-        // if LED_intensity value is received -> update and write to LED
-        if(String(l_type) == "LED_intensity") {
-          LED_intensity = int(l_value);
-          sendJson("LED_intensity", String(l_value));
-          ledBlinks = map(LED_intensity,0,100,0,6);
-          // ledcWrite(led_channels[LED_selected], map(LED_intensity, 0, 100, 0, 255));
+  } else if(type == WS_EVT_DISCONNECT){
+    DBGF2("ws[%s][%u] disconnect\n", server->url(), client->id());
+  } else if(type == WS_EVT_ERROR){
+    DBGF2("ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
+  } else if(type == WS_EVT_PONG){
+    DBGF2("ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len)?(char*)data:"");
+  } else if(type == WS_EVT_DATA){
+      AwsFrameInfo * info = (AwsFrameInfo*)arg;
+      String msg = "";
+      if(info->final && info->index == 0 && info->len == len){
+        //the whole message is in a single frame and we got all of it's data
+        // DBGF2("ws[%s][%u] %s-message[%llu]: \n", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
+
+        if(info->opcode == WS_TEXT){
+          for(size_t i=0; i < info->len; i++) {
+            msg += (char) data[i];
+          }
+        } else {
+          char buff[3];
+          for(size_t i=0; i < info->len; i++) {
+            sprintf(buff, "%02x ", (uint8_t) data[i]);
+            msg += buff ;
+          }
         }
-        // else if LED_select is changed -> switch on LED and switch off the rest
-        if(String(l_type) == "LED_selected") {
-          LED_selected = int(l_value);
-          sendJson("LED_selected", String(l_value));
-          if(LED_selected == 0) {
-            ledBlinks = map(LED_intensity,0,100,0,6);
+        DBGF2("%s\n",msg.c_str());
+
+        if(info->opcode == WS_TEXT) {
+          // try to decipher the JSON string received
+          JsonDocument doc;                    // create JSON container 
+          DeserializationError error = deserializeJson(doc, msg.c_str());
+          if (error) {
+            DBG("deserializeJson() failed: ");
+            DBG(error.f_str());
+            return;
           }
           else {
-            ledBlinks = 0;
+            // JSON string was received correctly, so information can be retrieved:
+            const char* l_type = doc["type"];
+            DBG2("Type: " + String(l_type));
+            if(String(l_type) == "cmd_time") {
+              const unsigned long l_value = doc["value"];
+              DBG2("Value: " + String(l_value));
+              //setTime(l_value);
+              // sendJson("cmd_time", String(now));
+              sendJson(client, "cmd_time", String(1709949899));
+            }
+            if(String(l_type) == "cmd_dbg_level") {
+              uint l_value = doc["value"];
+              DBG2("Value: " + String(l_value));
+              dbgLevelRuntime = l_value;
+              DBG("Debug Level now " + String(l_value));
+            }
+          // client->text("I got your text message");
           }
         }
+        else {
+          // client->binary("I got your binary message");
+        }
+      }
+    else {
+    //message is comprised of multiple frames or the frame is split into multiple packets
+    if(info->index == 0){
+        if(info->num == 0)
+          DBGF2("ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
+        DBGF2("ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
       }
 
-      break;
+      Serial.printf("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
+
+      if(info->opcode == WS_TEXT){
+        for(size_t i=0; i < len; i++) {
+          msg += (char) data[i];
+        }
+      } else {
+        char buff[3];
+        for(size_t i=0; i < len; i++) {
+          sprintf(buff, "%02x ", (uint8_t) data[i]);
+          msg += buff ;
+        }
+      }
+      Serial.printf("%s\n",msg.c_str());
+
+      if((info->index + len) == info->len){
+        Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
+        if(info->final){
+          Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
+          if(info->message_opcode == WS_TEXT)
+            client->text("I got your text message");
+          else
+            client->binary("I got your binary message");
+        }
+      }
+    }
   }
 }
 
 void begin_webserver() {
-  server.on("/", []() {                               // define here wat the webserver needs to do
-    server.send(200, "text/html", webpage);           //    -> it needs to send out the HTML string "webpage" to the client
-  });
-  server.begin();                                     // start server
+  ws.onEvent(onWsEvent);
+  server.addHandler(&ws);
+
+  // events.onConnect([](AsyncEventSourceClient *client){
+  //     client->send("hello!",NULL,millis(),1000);
+  // });
+  // server.addHandler(&events);
   
-  webSocket.begin();                                  // start websocket
-  webSocket.onEvent(webSocketEvent);   
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", index_html);
+  });
+
+  server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String(ESP.getFreeHeap()));
+  });
+
+  server.onNotFound([](AsyncWebServerRequest *request){
+    request->send(404, "text/plain", "Not found");
+  });
+
+  server.begin();
 }
 
 void handleWebserver() {
-  server.handleClient();                              // Needed for the webserver to handle all clients
-  webSocket.loop();                                   // Update function for the webSockets 
-  
-  // static unsigned long updatePage = 0;
-  // if(TDIFF(updatePage,5000)) {
-  
-  //   String jsonString = "";                           // create a JSON string for sending data to the client
-  //   JsonDocument doc;                      // create a JSON container
-  //   JsonObject object = doc.to<JsonObject>();         // create a JSON Object
-  //   object["rand1"] = random(100);                    // write data into the JSON object -> I used "rand1" and "rand2" here, but you can use anything else
-  //   object["rand2"] = random(100);
-  //   serializeJson(doc, jsonString);                   // convert JSON object to string
-  //   Serial.println(jsonString);                       // print JSON string to console for debug purposes (you can comment this out)
-  //   webSocket.broadcastTXT(jsonString);               // send JSON string to clients
+  ws.cleanupClients();
 
-  //   updatePage = millis();
-  // }
+  static unsigned long updatePage = 0;
+  if(TDIFF(updatePage,5000)) {
+    // sendJson(String("cmd_dbg"),String("test"));
+    // DBG("Test");
+    //DBG2("Debug Level 2");
+    //DBG1("Debug Level 1");
+    // DBG("Debug Level 0");
+
+    updatePage = millis();
+  }
 }

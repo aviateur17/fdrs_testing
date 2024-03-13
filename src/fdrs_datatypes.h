@@ -27,6 +27,13 @@ enum crcResult {
 } returnCRC;
 
 enum {
+  DBG_OFF,
+  DBG_LVL0,
+  DBG_LVL1,
+  DBG_LVL2
+};
+
+enum {
   cmd_clear,
   cmd_ping,
   cmd_add,

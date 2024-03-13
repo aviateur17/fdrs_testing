@@ -113,7 +113,7 @@ void mqtt_callback(char *topic, byte *message, unsigned int length)
     {
         incomingString += (char)message[i];
     }
-    StaticJsonDocument<2048> doc;
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, incomingString);
     if (error)
     { // Test if parsing succeeds.

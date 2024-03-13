@@ -45,7 +45,7 @@
 #define LORA_SPI_MOSI GPIO_NUM_NC
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
-#define DBG_LEVEL 1
+#define DBG_LEVEL 2
 // #define DEBUG_CONFIG
 
 // I2C - OLED or RTC

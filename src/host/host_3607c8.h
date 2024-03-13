@@ -5,28 +5,28 @@
 #define __FDRS_GATEWAYCONFIG_h__
 
 //Addresses
-#define UNIT_MAC           0x21  // The address of this gateway
+#define UNIT_MAC           0x10  // The address of this gateway
 
-#define ESPNOW_NEIGHBOR_1  0x22  // Address of ESP-NOW neighbor #1
+#define ESPNOW_NEIGHBOR_1  0x00  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x00  // Address of ESP-NOW neighbor #2
 #define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
 // Interfaces
-#define USE_ESPNOW  
+// #define USE_ESPNOW  
 // #define USE_LORA
-// #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
+#define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
 //#define USE_ETHERNET
 
 // Actions
 // Options: sendESPNowNbr(1 or 2); sendESPNowPeers(); sendLoRaNbr(1 or 2); broadcastLoRa(); sendSerial(); sendMQTT();
-#define ESPNOWG_ACT    sendSerial();
+#define ESPNOWG_ACT    sendESPNowNbr(1);
 #define LORAG_ACT      
-#define SERIAL_ACT     sendESPNowNbr(1); sendESPNowPeers();
+#define SERIAL_ACT     
 #define MQTT_ACT          
-#define INTERNAL_ACT   sendSerial();
-#define ESPNOW1_ACT    sendSerial();
-#define ESPNOW2_ACT    sendESPNowNbr(1);                
+#define INTERNAL_ACT   sendESPNowNbr(1);
+#define ESPNOW1_ACT    
+#define ESPNOW2_ACT    sendESPNowNbr(1);
 #define LORA1_ACT      
 #define LORA2_ACT 
 
@@ -54,7 +54,7 @@
 // #define I2C_SCL GPIO_NUM_6
 
 // GPS UART Interface
-#define USE_GPS
+// #define USE_GPS
 #define GPS_RXD 25
 #define GPS_TXD 27
 
@@ -83,7 +83,7 @@
 #define WIFI_PASS   AP_PASS
 
 // Use Static IP Address for WiFi connections
-// #define USE_STATIC_IPADDRESS     
+#define USE_STATIC_IPADDRESS     
 #define HOST_IPADDRESS      HOSTIPADDRESS
 #define GW_IPADDRESS        GATEWAY
 #define SUBNET_ADDRESS      SUBNET
@@ -114,13 +114,4 @@
 #define SD_SS        0      //SD card CS pin (Use different pins for LoRa and SD)
 #define LOG_FILENAME "fdrs_log.csv"
 
-#include <fdrs_gateway.h>
-
-
-void host_setup() {
-
-}
-
-void host_loop() {
-
-}
+#include "main_wemos.h"
