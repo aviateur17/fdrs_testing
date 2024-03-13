@@ -19,29 +19,47 @@ static const char TAG[] = __FILE__;
 #include "host/credentials.h"
 #include "host/hostdefs.h"
 
-
-#ifdef HOST8D7F60
+#ifdef HOST8D7F60 // Gateway
     #include "host/host_8d7f60.h"
 #endif
-#ifdef HOST39EA44
+#ifdef HOST39EA44 // Gateway
     #include "host/host_39ea44.h"
 #endif
-#ifdef HOST393C24
+#ifdef HOST393C24 // Gateway
     #include "host/host_393c24.h"
 #endif
-#ifdef HOST3607C8
+#ifdef HOST3607C8 // Gateway
     #include "host/host_3607c8.h"
 #endif
-#ifdef HOST540B40
+#ifdef HOST540B40 // Gateway
     #include "host/host_540b40.h"
 #endif
-#ifdef HOST8D6214
+#ifdef HOST8D6214 // Gateway
     #include "host/host_8d6214.h"
 #endif
-#ifdef HOST8EB5D0
+#ifdef HOST8EB5D0 // Gateway
     #include "host/host_8eb5d0.h"
 #endif
-#include "fdrs_gateway_config.h"
+
+#ifdef HOST7488F0 // controller, ESP-NOW, Wrover ESP32
+    #include "host/host_7488f0.h"
+#endif
+#ifdef HOSTA94A3B // sensor, ESP-NOW, ESP01
+    #include "host/host_a94a3b.h"
+#endif
+#ifdef HOST368170 // sensor, LoRa, ESP32 w/ hallard shield
+    #include "host/host_368170.h"
+#endif
+#ifdef HOST8EBAB8 // sensor, ESP-NOW, ESP32s3 w/ OLED
+    #include "host/host_8ebab8.h"
+#endif
+
+#ifdef __FDRS_GATEWAYCONFIG_h__
+    #include "fdrs_gateway_config.h"
+#endif
+#ifdef __FDRS_NODECONFIG_h__
+    #include "fdrs_node_config.h"
+#endif
 
 time_t lastRunTime = 0;
 
