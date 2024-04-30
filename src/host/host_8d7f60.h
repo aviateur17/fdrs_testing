@@ -16,6 +16,7 @@
 // #define USE_ESPNOW  
 // #define USE_LORA
 #define USE_WIFI  // Will cause errors if used with ESP-NOW. Use a serial link instead!
+#define USE_WEBSERVER
 //#define USE_ETHERNET
 
 // Actions
@@ -45,7 +46,7 @@
 #define LORA_SPI_MOSI GPIO_NUM_NC
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
-#define DBG_LEVEL 2
+#define DBG_LEVEL 1
 // #define DEBUG_CONFIG
 
 // I2C - OLED or RTC

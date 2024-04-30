@@ -57,13 +57,15 @@ const char *mqtt_pass = NULL;
 
 void reconnect_mqtt(short int attempts, bool silent)
 {
+    char clientId[31];
     if (!silent)
         DBG("Connecting MQTT...");
 
     for (short int i = 1; i <= attempts; i++)
     {
         // Attempt to connect
-        if (client.connect("FDRS_GATEWAY1", mqtt_user, mqtt_pass))
+        snprintf(clientId, 30, "%s-%li", "FDRS_GATEWAY_", random(0xffff));
+        if (client.connect(clientId, mqtt_user, mqtt_pass))
         {
             // Subscribe
             client.subscribe(TOPIC_COMMAND);

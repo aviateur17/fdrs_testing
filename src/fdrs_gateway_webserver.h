@@ -12,7 +12,7 @@
 #include <ESPAsyncWebServer.h>
 // #include <SPIFFSEditor.h>
 
-#include "fdrs_webpage.h"
+#include "fdrs_gateway_webpage.h"
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -51,10 +51,15 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
     DBGF2("ws[%s][%u] connect\n", server->url(), client->id());
     // client->printf("Hello Client %u :)", client->id());
     // client->ping();
-    sendJson(client, "cmd_time", String(now));
+    sendJson(client, "cmd_time", String(1709949899));
     sendJson(client, "cmd_mac", String(UNIT_MAC,HEX));
     sendJson(client, "cmd_ip", String(WiFi.localIP().toString()));
-    sendJson(client, "cmd_dbg_level", String(debugLevel));
+    sendJson(client, "cmd_dbg_level", String(DBG_LEVEL));
+    sendJson(client, "printTime", String(TIME_PRINTTIME));
+    sendJson(client, "espNowNbr1", String(ESPNOW_NEIGHBOR_1));
+    sendJson(client, "espNowNbr2", String(ESPNOW_NEIGHBOR_2));
+    sendJson(client, "loraNbr1", String(LORA_NEIGHBOR_1));
+    sendJson(client, "loraNbr2", String(LORA_NEIGHBOR_2));
 
   } else if(type == WS_EVT_DISCONNECT){
     DBGF2("ws[%s][%u] disconnect\n", server->url(), client->id());
@@ -103,10 +108,8 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
               sendJson(client, "cmd_time", String(1709949899));
             }
             if(String(l_type) == "cmd_dbg_level") {
-              uint l_value = doc["value"];
-              DBG2("Value: " + String(l_value));
-              dbgLevelRuntime = l_value;
-              DBG("Debug Level now " + String(l_value));
+              dbgLevelRuntime = doc["value"];
+              DBG("Debug Level now " + String(dbgLevelRuntime));
             }
           // client->text("I got your text message");
           }

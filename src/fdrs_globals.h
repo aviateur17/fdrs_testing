@@ -35,3 +35,29 @@
 #define GLOBAL_LORA_INTERVAL 5000  // Interval between LoRa buffer releases. Must be longer than transmission time-on-air.
 
 #define MAC_PREFIX  0xAA, 0xBB, 0xCC, 0xDD, 0xEE  // Should only be changed if implementing multiple FDRS systems.
+
+#if defined(USE_OLED) || defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+    #define USE_I2C
+#endif
+
+#if defined(USE_RTC_DS3231) || defined(USE_RTC_DS1307)
+  #define USE_RTC
+#endif
+
+#if defined(USE_GPS) && defined(ESP8266)
+  #error "For ESP8266 only one UART has both Tx and Rx capabilities. GPS not supported for ESP8266"
+#endif
+
+#if defined(USE_ETHERNET) && !defined(ESP32)
+  #error "Ethernet only supported for ESP32."
+#endif
+
+#if defined(USE_OLED) && (!defined(ARDUINO_ARCH_ESP32) || !defined(ARDUINO_ARCH_ESP8266))
+  #warning "OLED current supported for only ESP32 or ESP8266."
+  #undef USE_OLED
+#endif
+
+// #if defined(USE_WEBSERVER) && (!defined(ARDUINO_ARCH_ESP32) || !defined(ARDUINO_ARCH_ESP8266))
+//   #warning "Web server function only compatible with ESP32 or ESP8266"
+//   #undef USE_WEBSERVER
+// #endif

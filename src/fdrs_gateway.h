@@ -38,6 +38,8 @@
 
 SystemPacket theCmd;
 DataReading theData[256];
+LastSeen_t *lsHead = NULL;
+LastSeen_t *lsCurrent = NULL;
 uint8_t ln;
 uint8_t newData = event_clear;
 uint8_t newCmd = cmd_clear;
@@ -74,7 +76,9 @@ void releaseLogBuffer();
   #include "fdrs_gateway_mqtt.h"
   #include "fdrs_gateway_time.h"
   #include "fdrs_gateway_ota.h"
-  #include "fdrs_webserver.h"
+  #ifdef USE_WEBSERVER
+    #include "fdrs_gateway_webserver.h"
+  #endif
 #endif
 #if defined(USE_FS_LOG) || defined(USE_SD_LOG)
   #include "fdrs_gateway_filesystem.h"
@@ -132,7 +136,9 @@ void beginFDRS()
   begin_mqtt();
   begin_ntp();
   begin_OTA();
-  begin_webserver();
+  #ifdef USE_WEBSERVER
+    begin_webserver();
+  #endif
 #endif
 #ifdef USE_ESPNOW
   begin_espnow();
@@ -188,7 +194,9 @@ void loopFDRS()
   updateTime();
   handleMQTT();
   handleOTA();
-  handleWebserver();
+  #ifdef USE_WEBSERVER
+    handleWebserver();
+  #endif
 #endif
 #ifdef USE_OLED
   drawPageOLED(true);
@@ -227,6 +235,112 @@ void loopFDRS()
     }
     newData = event_clear;
   }
+}
+
+// Does the ID exist in our list?
+// Increments the count and returns true if yes
+// Otherwise returns false
+bool lastSeen_exist(uint16_t id) {
+  LastSeen_t *p = lsHead;
+  while(p != NULL) {
+    if(p->id == id) {
+      p->count++;
+      return true;
+    }
+    p = p->next;
+  }
+  return false;
+}
+
+// Adds ID and time to our list if not existing
+// otherwise, if it does exist, increments the count
+// Returns true if the ID is added
+// Otherwise returns false
+bool lastSeen_add(uint16_t id) {
+  if(!lastSeen_exist(id)) {
+    if(lsHead == NULL) { // first element
+      lsHead = (LastSeen_t *) malloc(sizeof(LastSeen_t));
+      if(lsHead == NULL) {
+        return false;
+      }
+      lsHead->id = id;
+      lsHead->time = now;
+      lsHead->count = 1;
+      lsCurrent = NULL;
+    }
+    else if(lsHead->next == NULL) { // Second element
+      lsHead->next = (LastSeen_t *) malloc(sizeof(LastSeen_t));
+      lsCurrent = lsHead->next;
+      if(lsCurrent == NULL) {
+        return false;
+      } 
+      lsCurrent->id = id;
+      lsCurrent->time = now;
+      lsCurrent->count = 1;
+    }
+    else { // Nth element
+      lsCurrent->next = (LastSeen_t *) malloc(sizeof(LastSeen_t));
+      if(lsCurrent->next == NULL) {
+        return false;
+      } 
+      lsCurrent = lsCurrent->next;
+      lsCurrent->id = id;
+      lsCurrent->time = now;
+      lsCurrent->count = 1;
+    }
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+// Removes an ID from the list
+// Returns true if the ID is found
+// Returns false if the ID is not found
+bool lastSeen_del(uint16_t id) {
+  LastSeen_t *p;
+  LastSeen_t *temp;
+  p = lsHead;
+  // List is empty
+  if(lsHead == NULL) {
+    return false;
+  }
+  // One element, no match
+  else if(lsHead->next == NULL && lsHead->id != id) {
+    return false;
+  }
+  // Match in first element, delete elment
+  else if(lsHead->next == NULL && lsHead->id == id) {
+    free(lsHead);
+    lsHead = NULL;
+    free(lsCurrent);
+    lsCurrent = NULL;
+    return true;
+  }
+  // Check for middle element
+  while(p->next->next != NULL) {
+    if(p->next->id == id) {
+      temp = p->next;
+      p->next = p->next->next;
+      free(temp);
+      temp = NULL;
+      return true;
+    }
+    p = p->next;
+  }
+  // Need to check for last element and free lsCurrent if match
+  return false;
+}
+// Prints the list to stdout
+void lastSeen_print() {
+  LastSeen_t *p;
+  p = lsHead;
+  while(p != NULL) {
+    DBG2("LastSeen List: ID: " + String(p->id) + " num: " + String(p->num) + " time: " + String(p->time));
+    p = p->next;
+  }
+  return;
 }
 
 // "Skeleton Functions related to FDRS Actions"

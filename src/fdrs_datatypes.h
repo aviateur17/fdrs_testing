@@ -20,6 +20,13 @@ typedef struct __attribute__((packed)) SystemPacket {
   uint32_t param;
 } SystemPacket;
 
+typedef struct LastSeen {
+  uint16_t id;
+  unsigned long time;
+  unsigned long count;
+  struct LastSeen *next;
+} LastSeen_t;
+
 enum crcResult {
   CRC_NULL,
   CRC_OK,
@@ -27,10 +34,10 @@ enum crcResult {
 } returnCRC;
 
 enum {
-  DBG_OFF,
-  DBG_LVL0,
+  DBG_NONE = -1,
+  DBG_LVL0 = 0,
   DBG_LVL1,
-  DBG_LVL2
+  DBG_LVL2, 
 };
 
 enum {
