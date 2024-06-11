@@ -51,7 +51,6 @@ void sendTimeSerial();
 
 void beginFDRS()
 {
-  delay(10000);
   Serial.begin(115200);
   // // find out the reset reason
   // esp_reset_reason_t resetReason;
@@ -64,10 +63,22 @@ void beginFDRS()
   DBG("Display initialized!");
   DBG("Hello, World!");
 #endif
-  DBG("FDRS User Node initializing...");
-  DBG(" Reading ID " + String(READING_ID));
-  DBG(" Gateway: " + String(GTWY_MAC, HEX));
+  DBG("");
+  DBG("Initializing FDRS Node!");
+  DBG("Reading ID " + String(READING_ID));
+  DBG("Gateway: " + String(GTWY_MAC, HEX));
+  DBG("Debugging verbosity level: " + String(DBG_LEVEL));
+#ifdef USE_ESPNOW
+  DBG1("ESP-NOW is enabled.");
+#endif
+#ifdef USE_LORA
+  DBG1("LoRa is enabled.");
+#endif
+#ifdef DEEP_SLEEP
+  DBG1("Deep sleep is enabled.");
+#endif
 #ifdef POWER_CTRL
+  DBG1("Power control is enabled on pin " + String(POWER_CTRL));
   DBG("Powering up the sensor array!");
   pinMode(POWER_CTRL, OUTPUT);
   digitalWrite(POWER_CTRL, 1);
@@ -113,13 +124,13 @@ void beginFDRS()
   memcpy(peerInfo.peer_addr, broadcast_mac, 6);
   if (esp_now_add_peer(&peerInfo) != ESP_OK)
   {
-    DBG("Failed to add peer bcast");
+    DBG(" Failed to add peer bcast");
     return;
   }
   memcpy(peerInfo.peer_addr, gatewayAddress, 6);
   if (esp_now_add_peer(&peerInfo) != ESP_OK)
   {
-    DBG("Failed to add peer");
+    DBG(" Failed to add peer");
     return;
   }
 #endif
@@ -233,6 +244,11 @@ void loadFDRS(float d, uint8_t t, uint16_t id)
 
 void sleepFDRS(uint32_t sleep_time)
 {
+  unsigned long timeout = millis() + 1000;
+  while(millis() < timeout && (!ISBUFFEMPTY(drBuff) || !ISBUFFEMPTY(spBuff))) {
+    handleLoRa();
+    yield();
+  }
 #ifdef DEEP_SLEEP
   DBG(" Deep sleeping.");
 #ifdef ESP32
