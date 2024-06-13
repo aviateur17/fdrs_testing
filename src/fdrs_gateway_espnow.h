@@ -32,7 +32,7 @@ bool pingFlagEspNow = false;
 #if defined(ESP8266)
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus)
 {
-  esp_now_sent_flag = true;
+esp_now_sent_flag = true;
 }
 void OnDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len)
 {
@@ -40,7 +40,7 @@ void OnDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len)
 #elif defined(ESP32)
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
-  esp_now_sent_flag = true;
+esp_now_sent_flag = true;
 }
 void OnDataRecv(const esp_now_recv_info *pkt_info, const uint8_t *incomingData, int len)
 {
@@ -48,7 +48,7 @@ void OnDataRecv(const esp_now_recv_info *pkt_info, const uint8_t *incomingData, 
   #endif
   if (len < sizeof(DataReading))
   {
-    DBG1("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
+    DBG("Incoming ESP-NOW System Packet from 0x" + String(incMAC[5], HEX));
     memcpy(&theCmd, incomingData, sizeof(theCmd));
     // processing is handled in the handlecommands() function in gateway.h - do not process here
     return;
@@ -168,7 +168,7 @@ void add_espnow_peer()
   if (peer_num == -1) // if the device isn't registered
   {
     int open_peer = find_espnow_peer();            // find open spot in peer_list
-    DBG("Registering new peer. Slot: " + String(open_peer));
+    DBG("New device will be registered as " + String(open_peer));
     memcpy(&peer_list[open_peer].mac, &incMAC, 6); // save MAC to open spot
     peer_list[open_peer].last_seen = millis();
 #if defined(ESP32)

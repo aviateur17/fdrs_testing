@@ -8,7 +8,6 @@
 
 #define GLOBAL_DBG_LEVEL 0
 
-
 #define GLOBAL_WIFI_SSID        "Your SSID"
 #define GLOBAL_WIFI_PASS        "Password"
 

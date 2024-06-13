@@ -50,6 +50,12 @@ static const char TAG[] = __FILE__;
 #ifdef HOST368170 // sensor, LoRa, ESP32 w/ hallard shield
     #include "host/host_368170.h"
 #endif
+#ifdef HOSTTTGO_LORA32_161 // sensor, LoRa, TTGO LORA32 V1.6.1
+    #include "host/host_ttgo_v161.h"
+#endif
+#ifdef HOSTTTGO_LORA32_13 // sensor, LoRa, TTGO LORA32 V1.3
+    #include "host/host_ttgo_v13.h"
+#endif
 #ifdef HOST8EBAB8 // sensor, ESP-NOW, ESP32s3 w/ OLED
     #include "host/host_8ebab8.h"
 #endif

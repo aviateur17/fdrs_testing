@@ -1,7 +1,5 @@
 #define TS ((tv.tv_sec == 0) ? millis(): tv.tv_sec)
 
-#define TS millis()
-
 #ifndef DBG_LEVEL
     #define DBG_LEVEL GLOBAL_DBG_LEVEL
 #endif
@@ -38,9 +36,6 @@
     #else
         #define DBG(a)
     #endif // USE_OLED
-    #define DBGF(_f, ...)
     #define DBG1(a)
-    #define DBGF1(_f, ...)
     #define DBG2(a)
-    #define DBGF2(_f, ...)
 #endif // FDRS_DEBUG

@@ -124,13 +124,13 @@ void beginFDRS()
   memcpy(peerInfo.peer_addr, broadcast_mac, 6);
   if (esp_now_add_peer(&peerInfo) != ESP_OK)
   {
-    DBG(" Failed to add peer bcast");
+    DBG("Failed to add peer bcast");
     return;
   }
   memcpy(peerInfo.peer_addr, gatewayAddress, 6);
   if (esp_now_add_peer(&peerInfo) != ESP_OK)
   {
-    DBG(" Failed to add peer");
+    DBG("Failed to add peer");
     return;
   }
 #endif
@@ -244,11 +244,6 @@ void loadFDRS(float d, uint8_t t, uint16_t id)
 
 void sleepFDRS(uint32_t sleep_time)
 {
-  unsigned long timeout = millis() + 1000;
-  while(millis() < timeout && (!ISBUFFEMPTY(drBuff) || !ISBUFFEMPTY(spBuff))) {
-    handleLoRa();
-    yield();
-  }
 #ifdef DEEP_SLEEP
   DBG(" Deep sleeping.");
 #ifdef ESP32

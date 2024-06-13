@@ -154,7 +154,6 @@ void beginFDRS()
 #ifdef USE_RTC
   begin_rtc();
 #endif
-
 #ifdef USE_OLED
   init_oled();
   DBG("Display initialized!");
