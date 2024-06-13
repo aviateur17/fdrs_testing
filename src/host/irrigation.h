@@ -47,10 +47,10 @@ must be 10 or greater and is in units of seconds.
 #define CONTROL_3 103  //Address for controller 3
 #define CONTROL_4 104  //Address for controller 4
 
-#define COIL_1 GPIO_NUM_16   //Coil Pin 1
-#define COIL_2 GPIO_NUM_17   //Coil Pin 2
-#define COIL_3 GPIO_NUM_18  //Coil Pin 3
-#define COIL_4 GPIO_NUM_19  //Coil Pin 4
+#define COIL_1 GPIO_NUM_NC   //Coil Pin 1
+#define COIL_2 GPIO_NUM_NC   //Coil Pin 2
+#define COIL_3 GPIO_NUM_NC  //Coil Pin 3
+#define COIL_4 GPIO_NUM_NC  //Coil Pin 4
 
 // These are set up for relay module which are active-LOW. 
 // Swap 'HIGH'and 'LOW' to use the inverse.
@@ -74,11 +74,8 @@ irrigController cont[] = {
 };
 
 unsigned long statusCheck = 0;
-unsigned long checkGatewayStatus = 0;
-
 bool isData = false;
 bool newStatus = false;
-bool connectedToGateway = false;
 uint numcontrollers;
 
 // Callback function in the controller that receives data to get or set coils
@@ -133,7 +130,6 @@ void checkCoils() {  // Sends back a status report for each coil pin.
   }
 }
 
-
 // Sets coil value according to data received in callback function
 void updateCoils() {  
   for(int i = 0; i < numcontrollers; i++) {
@@ -155,21 +151,6 @@ void updateCoils() {
   }
 }
 
-// Attempts to inform gateway that we are alive and waiting to receive data
-// Returns true if we have successfully registered with gateway otherwise return false
-bool registerWithGateway() {
-  if (addFDRS(1000, fdrs_recv_cb)) {
-    for(int i = 0; i < numcontrollers; i++) {
-      subscribeFDRS(cont[i].address);
-    }
-    return true;
-  } else {
-    DBG("Not Connected");
-    // If we can't connect to gateway then we won't receive data should we delay and retry or delay and reboot?
-  }
-  return false;
-}
-
 void host_setup() {
   beginFDRS();
   DBG("FARM DATA RELAY SYSTEM :: Irrigation Module");
@@ -181,7 +162,13 @@ void host_setup() {
     pinMode(cont[i].coilPin, OUTPUT);
     digitalWrite(cont[i].coilPin, OFF);
   }
-  connectedToGateway = registerWithGateway();
+  
+  // Register the callback function for received data
+  addFDRS(fdrs_recv_cb);
+  // Subscribe to Data Readings
+  for(int i = 0; i < numcontrollers; i++) {
+    subscribeFDRS(cont[i].address);
+  }
 }
 
 void host_loop() {
@@ -211,12 +198,5 @@ void host_loop() {
       }
     }
     statusCheck = millis();
-  }
-  // Periodically test and try to reestablish gateway connection if not connected
-  if(millis() - checkGatewayStatus > 20000) {
-    if(connectedToGateway == false){
-      connectedToGateway = registerWithGateway();
-    }
-    checkGatewayStatus = millis();
   }
 }

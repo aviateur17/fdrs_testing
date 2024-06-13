@@ -1,7 +1,7 @@
 Based off of: https://github.com/timmbogner/Farm-Data-Relay-System
 
 
-Jeff Testing Branch for FDRS Gateway with PlatformIO in VSCode
+Jeff Testing Branch for FDRS with PlatformIO in VSCode
 
 Host 39ea44
 ESP-NOW <--> LoRa Gateway
