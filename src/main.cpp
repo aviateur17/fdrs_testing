@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 
+
 // Use only core 1
 #if CONFIG_FREERTOS_UNICORE
   static const BaseType_t app_cpu = 0;
@@ -41,22 +42,22 @@ static const char TAG[] = __FILE__;
     #include "host/host_8eb5d0.h"
 #endif
 
-#ifdef HOST7488F0 // controller, ESP-NOW, Wrover ESP32
+#ifdef HOST7488F0 // controller, ESP-NOW, Wrover ESP32, Address 85
     #include "host/host_7488f0.h"
 #endif
-#ifdef HOSTA94A3B // sensor, ESP-NOW, ESP01
+#ifdef HOSTA94A3B // sensor, ESP-NOW, ESP01, Address 88
     #include "host/host_a94a3b.h"
 #endif
-#ifdef HOST368170 // sensor, LoRa, ESP32 w/ hallard shield
+#ifdef HOST368170 // sensor, LoRa, ESP32 w/ hallard shield, Address 0x90
     #include "host/host_368170.h"
 #endif
-#ifdef HOSTTTGO_LORA32_161 // sensor, LoRa, TTGO LORA32 V1.6.1
+#ifdef HOSTTTGO_LORA32_161 // sensor, LoRa, TTGO LORA32 V1.6.1, Address 0x91
     #include "host/host_ttgo_v161.h"
 #endif
-#ifdef HOSTTTGO_LORA32_13 // sensor, LoRa, TTGO LORA32 V1.3
+#ifdef HOSTTTGO_LORA32_13 // sensor, LoRa, TTGO LORA32 V1.3, Address 0x92
     #include "host/host_ttgo_v13.h"
 #endif
-#ifdef HOST8EBAB8 // sensor, ESP-NOW, ESP32s3 w/ OLED
+#ifdef HOST8EBAB8 // sensor, ESP-NOW, ESP32s3 w/ OLED, Address 0x87
     #include "host/host_8ebab8.h"
 #endif
 
@@ -66,24 +67,18 @@ static const char TAG[] = __FILE__;
 #ifdef __FDRS_NODECONFIG_h__
     #include "fdrs_node_config.h"
 #endif
-
-time_t lastRunTime = 0;
+#ifndef VERSIONNO
+    #define VERSIONNO "-1 No Version Defined"
+#endif
 
 void setup() {
     delay(10000); // ESP32S3 takes several seconds to connect to COM port so do not see the initialization
+    DBG("JL Version number: " + String(VERSIONNO));
     beginFDRS();
-    host_setup();
+    host_setup(); // see hosts files and config files for #includes
 }
 
 void loop() {
     loopFDRS();
-    // if(millis() - lastRunTime > (1000*60*1)) {
-    //     loadFDRS(random(0,100),0,82);
-    //     loadFDRS(random(0,100),0,82);
-    //     loadFDRS(random(0,100),0,82);
-    //     lastRunTime = millis();
-    //     sendFDRS();
-    // }
-
-    host_loop();
+    host_loop(); // see hosts files and config files for #includes
 }
