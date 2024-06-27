@@ -47,10 +47,10 @@ must be 10 or greater and is in units of seconds.
 #define CONTROL_3 103  //Address for controller 3
 #define CONTROL_4 104  //Address for controller 4
 
-#define COIL_1 GPIO_NUM_NC   //Coil Pin 1
-#define COIL_2 GPIO_NUM_NC   //Coil Pin 2
-#define COIL_3 GPIO_NUM_NC  //Coil Pin 3
-#define COIL_4 GPIO_NUM_NC  //Coil Pin 4
+#define COIL_1 GPIO_NUM_12   //Coil Pin 1
+#define COIL_2 GPIO_NUM_13   //Coil Pin 2
+#define COIL_3 GPIO_NUM_14  //Coil Pin 3
+#define COIL_4 GPIO_NUM_15  //Coil Pin 4
 
 // These are set up for relay module which are active-LOW. 
 // Swap 'HIGH'and 'LOW' to use the inverse.
@@ -117,7 +117,7 @@ void fdrs_recv_cb(DataReading theData) {
 
 void checkCoils() {  // Sends back a status report for each coil pin.
   for(int i = 0; i < numcontrollers; i++) {
-    if (digitalRead(cont[i].coilPin == HIGH)) {
+    if (digitalRead(cont[i].coilPin) == HIGH) {
       loadFDRS(1, STATUS_T, cont[i].address);
     } else {
       loadFDRS(0, STATUS_T, cont[i].address);
@@ -164,10 +164,11 @@ void host_setup() {
   }
   
   // Register the callback function for received data
-  addFDRS(fdrs_recv_cb);
-  // Subscribe to Data Readings
-  for(int i = 0; i < numcontrollers; i++) {
-    subscribeFDRS(cont[i].address);
+  if(addFDRS(fdrs_recv_cb)) {
+    // Subscribe to Data Readings
+    for(int i = 0; i < numcontrollers; i++) {
+      subscribeFDRS(cont[i].address);
+    }
   }
 }
 

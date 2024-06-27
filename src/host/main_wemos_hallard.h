@@ -1,6 +1,7 @@
 
 #include <fdrs_gateway.h>
 #include <Adafruit_NeoPixel.h>
+#include <driver/gpio.h>
 
 #define LED GPIO_NUM_2
 #define BUTTON GPIO_NUM_16

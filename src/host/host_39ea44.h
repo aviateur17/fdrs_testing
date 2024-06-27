@@ -9,7 +9,7 @@
 
 #define ESPNOW_NEIGHBOR_1  0x21  // Address of ESP-NOW neighbor #1
 #define ESPNOW_NEIGHBOR_2  0x00  // Address of ESP-NOW neighbor #2
-#define LORA_NEIGHBOR_1    0x23  // Address of LoRa neighbor #1
+#define LORA_NEIGHBOR_1    0x00  // Address of LoRa neighbor #1
 #define LORA_NEIGHBOR_2    0x00  // Address of LoRa neighbor #2
 
 // Interfaces
@@ -25,7 +25,7 @@
 #define SERIAL_ACT     
 #define MQTT_ACT          
 #define INTERNAL_ACT   sendESPNowNbr(1);
-#define ESPNOW1_ACT    sendESPNowPeers(); sendLoRaNbr(1); broadcastLoRa();
+#define ESPNOW1_ACT    sendESPNowPeers(); broadcastLoRa();
 #define ESPNOW2_ACT                    
 #define LORA1_ACT      sendESPNowNbr(1);
 #define LORA2_ACT 
@@ -46,7 +46,7 @@
 #define LORA_SPI_MOSI 23
 
 #define FDRS_DEBUG     // Enable USB-Serial debugging
-#define DBG_LEVEL 1
+#define DBG_LEVEL 2
 // #define DEBUG_CONFIG
 
 // I2C - OLED or rtc

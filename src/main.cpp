@@ -67,13 +67,12 @@ static const char TAG[] = __FILE__;
 #ifdef __FDRS_NODECONFIG_h__
     #include "fdrs_node_config.h"
 #endif
-#ifndef VERSIONNO
-    #define VERSIONNO "-1 No Version Defined"
-#endif
+
+const char* versionNumber = "1.0.0.0 main 20240627";
 
 void setup() {
     delay(10000); // ESP32S3 takes several seconds to connect to COM port so do not see the initialization
-    DBG("JL Version number: " + String(VERSIONNO));
+    DBGF("JL Version number: %s\n", versionNumber);
     beginFDRS();
     host_setup(); // see hosts files and config files for #includes
 }
