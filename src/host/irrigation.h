@@ -161,7 +161,7 @@ void updateCoils() {
 }
 
 void host_setup() {
-  beginFDRS();
+  // beginFDRS();
   DBG("FARM DATA RELAY SYSTEM :: Irrigation Module");
   pingFDRS(1000);
 

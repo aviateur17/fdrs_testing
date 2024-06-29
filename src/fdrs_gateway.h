@@ -154,6 +154,7 @@ void beginFDRS()
 #ifdef USE_RTC
   begin_rtc();
 #endif
+
 #ifdef USE_OLED
   init_oled();
   DBG("Display initialized!");
@@ -188,7 +189,7 @@ void beginFDRS()
 
 
 #ifdef USE_WIFI
-  client.publish(TOPIC_STATUS, "FDRS initialized");
+  client.publish(FDRS_TOPIC_STATUS, "FDRS initialized");
   scheduleFDRS(fetchNtpTime,1000*60*FDRS_TIME_FETCHNTP);
 #endif
 scheduleFDRS(printTime,1000*60*FDRS_TIME_PRINTTIME);

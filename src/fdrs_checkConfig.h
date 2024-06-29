@@ -249,46 +249,31 @@ void printWifiDetails() {
 #endif //FDRS_MQTT_AUTH
 
 #if defined(TOPIC_DATA)
-	DBG("MQTT topic (TOPIC_DATA)                  : " + String(TOPIC_DATA));
+	DBG("MQTT topic (TOPIC_DATA)                  : " + String(FDRS_TOPIC_DATA));
+#elif defined (GLOBAL_TOPIC_DATA)
+	DBG("MQTT topic used from GLOBAL_TOPIC_DATA : " + String(FDRS_TOPIC_DATA));
 #else 
 	DBG("NO MQTT topic defined! Please define TOPIC_DATA in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
 	//exit(0);
 #endif //TOPIC_DATA
 
 #if defined(TOPIC_STATUS)
-	DBG("MQTT topic (TOPIC_STATUS)                : " + String(TOPIC_STATUS));
+	DBG("MQTT topic (TOPIC_STATUS)                : " + String(FDRS_TOPIC_STATUS));
+#elif defined (GLOBAL_TOPIC_STATUS)
+	DBG("MQTT topic used from GLOBAL_TOPIC_STATUS : " + String(FDRS_TOPIC_STATUS));
 #else 
 	DBG("NO MQTT topic defined! Please define TOPIC_STATUS in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
 	//exit(0);
 #endif //TOPIC_STATUS
 
 #if defined(TOPIC_COMMAND)
-	DBG("MQTT topic (TOPIC_COMMAND)               : " + String(TOPIC_COMMAND));
+	DBG("MQTT topic (TOPIC_COMMAND)               : " + String(FDRS_TOPIC_COMMAND));
+	#elif defined (GLOBAL_TOPIC_COMMAND)
+	DBG("MQTT topic used from GLOBAL_TOPIC_COMMAND : " + String(FDRS_TOPIC_COMMAND));
 #else 
 	DBG("NO MQTT topic defined! Please define TOPIC_COMMAND in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
 	//exit(0);
 #endif //TOPIC_COMMAND
-
-	printSmallSectionHeader("NTP TIME CONFIG:");
-
-#if defined(TIME_SERVER)
-	DBG("NTP Time Server address used from TIME_SERVER        		: " + String(FDRS_TIME_SERVER));
-#elif defined (GLOBAL_TIME_SERVER)
-	DBG("NTP Time Server used from GLOBAL_TIME_SERVER  				: " + String(FDRS_TIME_SERVER));
-#else 
-	DBG("NO NTP Time Server address defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
-	//exit(0);
-#endif //TIME_SERVER
-
-#if defined(LOCAL_OFFSET)
-	DBG("Local time offset from UTC used from LOCAL_OFFSET         	: " + String(FDRS_LOCAL_OFFSET));
-#elif defined (GLOBAL_LOCAL_OFFSET)
-	DBG("Local time offset from UTC used from GLOBAL_LOCAL_OFFSET  	: " + String(FDRS_LOCAL_OFFSET));
-#else 
-	DBG("NO Local time offset from UTC defined! Please define in fdrs_globals.h (recommended) or in fdrs_node_config.h / fdrs_gateway_config.h");
-	//exit(0);
-#endif //LOCAL_OFFSET
-
 
 	DBG(separatorLine);
 	DBG(separatorLine);

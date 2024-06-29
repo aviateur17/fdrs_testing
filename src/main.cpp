@@ -5,6 +5,12 @@
 //  Developed by Timm Bogner (timmbogner@gmail.com) in Urbana, Illinois, USA.
 //
 
+/*
+    Version History:
+    1.1.0.0 main 20240628 - Merge FDRS changes into this project d6e63eb50bb96874b7b270cf9e45f29ff67fb22b
+    1.0.0.0 main 20240627
+*/
+
 #include <Arduino.h>
 
 
@@ -68,12 +74,12 @@ static const char TAG[] = __FILE__;
     #include "fdrs_node_config.h"
 #endif
 
-const char* versionNumber = "1.0.0.0 main 20240627";
+const char* versionNumber = "1.1.0.0 main 20240628";
 
 void setup() {
     delay(10000); // ESP32S3 takes several seconds to connect to COM port so do not see the initialization
-    DBGF("JL Version number: %s\n", versionNumber);
     beginFDRS();
+    DBGF("JL Version number: %s\n", versionNumber);
     host_setup(); // see hosts files and config files for #includes
 }
 
