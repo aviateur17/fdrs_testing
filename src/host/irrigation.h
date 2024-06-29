@@ -5,7 +5,6 @@
 //  Developed by Timm Bogner (timmbogner@gmail.com) in Urbana, Illinois, USA.
 //
 //
-
 #include "fdrs_node_config.h"
 #include <fdrs_node.h>
 
@@ -16,8 +15,8 @@ typedef struct irrigController
 {
   uint address;
   int coilPin;
-  bool updatePending;
-  unsigned long status;
+  bool updatePending = false;
+  unsigned long status = 0;
 } irrigController;
 
 /*
@@ -57,20 +56,20 @@ must be 10 or greater and is in units of seconds.
 #define ON LOW
 #define OFF HIGH
 
-irrigController cont[] = { 
-  [0] = { .address = CONTROL_1, .coilPin = COIL_1, .updatePending = false, .status = 0 },
-  [1] = { .address = CONTROL_2, .coilPin = COIL_2, .updatePending = false, .status = 0 },
-  [2] = { .address = CONTROL_3, .coilPin = COIL_3, .updatePending = false, .status = 0 },
-  [3] = { .address = CONTROL_4, .coilPin = COIL_4, .updatePending = false, .status = 0 },
-  // [4] = { .address = CONTROL_5, .coilPin = COIL_5, .updatePending = false, .status = 0 },
-  // [5] = { .address = CONTROL_6, .coilPin = COIL_6, .updatePending = false, .status = 0 },
-  // [6] = { .address = CONTROL_7, .coilPin = COIL_7, .updatePending = false, .status = 0 },
-  // [7] = { .address = CONTROL_8, .coilPin = COIL_8, .updatePending = false, .status = 0 },
-  // [8] = { .address = CONTROL_9, .coilPin = COIL_9, .updatePending = false, .status = 0 },
-  // [9] = { .address = CONTROL_10, .coilPin = COIL_10, .updatePending = false, .status = 0 },
-  // [10] = { .address = CONTROL_11, .coilPin = COIL_11, .updatePending = false, .status = 0 },
-  // [11] = { .address = CONTROL_12, .coilPin = COIL_12, .updatePending = false, .status = 0 },
-  // [12] = { .address = CONTROL_13, .coilPin = COIL_13, .updatePending = false, .status = 0 },
+irrigController coil[] = { 
+  [0] = { .address = CONTROL_1, .coilPin = COIL_1 },
+  [1] = { .address = CONTROL_2, .coilPin = COIL_2 },
+  [2] = { .address = CONTROL_3, .coilPin = COIL_3 },
+  [3] = { .address = CONTROL_4, .coilPin = COIL_4 },
+  // [4] = { .address = CONTROL_5, .coilPin = COIL_5 },
+  // [5] = { .address = CONTROL_6, .coilPin = COIL_6 },
+  // [6] = { .address = CONTROL_7, .coilPin = COIL_7 },
+  // [7] = { .address = CONTROL_8, .coilPin = COIL_8 },
+  // [8] = { .address = CONTROL_9, .coilPin = COIL_9 },
+  // [9] = { .address = CONTROL_10, .coilPin = COIL_10 },
+  // [10] = { .address = CONTROL_11, .coilPin = COIL_11 },
+  // [11] = { .address = CONTROL_12, .coilPin = COIL_12 },
+  // [12] = { .address = CONTROL_13, .coilPin = COIL_13 },
 };
 
 unsigned long statusCheck = 0;
@@ -84,9 +83,9 @@ void fdrs_recv_cb(DataReading theData) {
   switch (theData.t) {
     case CMD_SET:  // Incoming command is to SET a value
       for(int i = 0; i < numcontrollers; i++) {
-        if(cont[i].address == (uint) theData.id) {
-          cont[i].status = (unsigned long) theData.d;
-          cont[i].updatePending = true;
+        if(coil[i].address == (uint) theData.id) {
+          coil[i].status = (unsigned long) theData.d;
+          coil[i].updatePending = true;
           isData = true;
           DBG1("Received SET cmd. Address: " + String(theData.id) + " value: " + String(theData.d));
           break;
@@ -96,11 +95,11 @@ void fdrs_recv_cb(DataReading theData) {
 
     case CMD_GET:  // Incoming command is to GET a value
       for(int i = 0; i < numcontrollers; i++) {
-        if(cont[i].address == theData.id) {
-          if (digitalRead(cont[i].coilPin) == HIGH) {
-            loadFDRS(1, STATUS_T, cont[i].address);
+        if(coil[i].address == theData.id) {
+          if (digitalRead(coil[i].coilPin) == HIGH) {
+            loadFDRS(1, STATUS_T, coil[i].address);
           } else {
-            loadFDRS(0, STATUS_T, cont[i].address);
+            loadFDRS(0, STATUS_T, coil[i].address);
           }
           DBG1("Received GET cmd for address: " + String(theData.id));
           newStatus = true;
@@ -117,10 +116,10 @@ void fdrs_recv_cb(DataReading theData) {
 
 void checkCoils() {  // Sends back a status report for each coil pin.
   for(int i = 0; i < numcontrollers; i++) {
-    if (digitalRead(cont[i].coilPin) == HIGH) {
-      loadFDRS(1, STATUS_T, cont[i].address);
+    if (digitalRead(coil[i].coilPin) == HIGH) {
+      loadFDRS(1, STATUS_T, coil[i].address);
     } else {
-      loadFDRS(0, STATUS_T, cont[i].address);
+      loadFDRS(0, STATUS_T, coil[i].address);
     }
   }
   if (sendFDRS()) {
@@ -133,20 +132,30 @@ void checkCoils() {  // Sends back a status report for each coil pin.
 // Sets coil value according to data received in callback function
 void updateCoils() {  
   for(int i = 0; i < numcontrollers; i++) {
-    if(cont[i].updatePending == true) {
-      if(cont[i].status == 0) {
-        digitalWrite(cont[i].coilPin, OFF);
-        DBG1("Address " + String(cont[i].address) + " coil pin " + String(cont[i].coilPin) + " off.");
+    if(coil[i].updatePending == true) {
+      if(coil[i].status == 0) {
+        digitalWrite(coil[i].coilPin, OFF);
+        delay(10);
+        bool outVal = digitalRead(coil[i].coilPin);
+        DBG1("Address " + String(coil[i].address) + " coil pin " + String(coil[i].coilPin) + " commanded off. Status: " + (outVal?"HIGH":"LOW"));
+        if(outVal != OFF) {
+          DBG("Alert! Address " + String(coil[i].address) + " coil pin " + String(coil[i].coilPin) + " commanded off but remains on!");
+        }
       }
       else {
-        digitalWrite(cont[i].coilPin, ON);
-        DBG1("Address " + String(cont[i].address) + " coil pin " + String(cont[i].coilPin) + " on.");
+        digitalWrite(coil[i].coilPin, ON);
+        delay(10);
+        bool outVal = digitalRead(coil[i].coilPin);
+        DBG1("Address " + String(coil[i].address) + " coil pin " + String(coil[i].coilPin) + " commanded off. Status: " + (outVal?"HIGH":"LOW"));
+        if(outVal != ON) {
+          DBG("Alert! Address " + String(coil[i].address) + " coil pin " + String(coil[i].coilPin) + " commanded on but remains off!");
+        }
       }
-      if(cont[i].status >= 10) {
-        DBG1("Address " + String(cont[i].address) + " coil pin " + String(cont[i].coilPin) + " on for " + String(cont[i].status) + " seconds.");
-        cont[i].status = millis() + (cont[i].status * 1000); // this is the time when the coil will be commanded off
+      if(coil[i].status >= 10) {
+        DBG1("Address " + String(coil[i].address) + " coil pin " + String(coil[i].coilPin) + " on for " + String(coil[i].status) + " seconds.");
+        coil[i].status = millis() + (coil[i].status * 1000); // this is the time when the coil will be commanded off
       }
-      cont[i].updatePending = false;
+      coil[i].updatePending = false;
     }
   }
 }
@@ -156,20 +165,23 @@ void host_setup() {
   DBG("FARM DATA RELAY SYSTEM :: Irrigation Module");
   pingFDRS(1000);
 
-  numcontrollers = (uint) sizeof(cont)/sizeof(irrigController);
+  numcontrollers = (uint) sizeof(coil)/sizeof(irrigController);
   // set up the physical outputs
   for(int i = 0; i < numcontrollers; i++) {
-    pinMode(cont[i].coilPin, OUTPUT);
-    digitalWrite(cont[i].coilPin, OFF);
+    pinMode(coil[i].coilPin, OUTPUT);
+    digitalWrite(coil[i].coilPin, OFF);
   }
-  
+
   // Register the callback function for received data
   if(addFDRS(fdrs_recv_cb)) {
     // Subscribe to Data Readings
     for(int i = 0; i < numcontrollers; i++) {
-      subscribeFDRS(cont[i].address);
+      subscribeFDRS(coil[i].address);
     }
+  } else {
+    DBG("Not Connected");
   }
+
 }
 
 void host_loop() {
@@ -187,14 +199,20 @@ void host_loop() {
       DBG("Unable to communicate with gateway!");
     }
   }
+  
   // periodically check for timer expiration on coils
   if(millis() - statusCheck > 500) {
     for(int i = 0; i < numcontrollers; i++) {
-      if(cont[i].status >= 10 && (millis() > cont[i].status)) {
-        cont[i].status = 0;
-        digitalWrite(cont[i].coilPin, OFF);
-        loadFDRS(OFF, STATUS_T, cont[i].address);
-        DBG1("Address " + String(cont[i].address) + " coil pin " + String(cont[i].coilPin) + " turned off.");
+      if(coil[i].status >= 10 && (millis() > coil[i].status)) {
+        coil[i].status = 0;
+        digitalWrite(coil[i].coilPin, OFF);
+        loadFDRS(OFF, STATUS_T, coil[i].address);
+        delay(10);
+        bool outVal = digitalRead(coil[i].coilPin);
+        DBG1("Address " + String(coil[i].address) + " coil pin " + String(coil[i].coilPin) + " commanded off. Status: " + (outVal?"HIGH":"LOW"));
+        if(outVal != OFF) {
+          DBG("Alert! Address " + String(coil[i].address) + " coil pin " + String(coil[i].coilPin) + " commanded off but remains on!");
+        }
         newStatus = true;
       }
     }
